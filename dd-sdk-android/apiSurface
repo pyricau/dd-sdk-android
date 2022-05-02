@@ -1335,6 +1335,7 @@ object com.datadog.android.sessionreplay.SessionReplay
   var root: ComposeNode
   val rootNodes: MutableMap<Int, ComposeNode>
   val nodes: MutableMap<Int, ComposeNode>
+  val nodesToView: MutableMap<ComposeNode, android.view.View>
   var windowReference: java.lang.ref.WeakReference<android.view.Window>
   fun getBitmapFromWindow(android.view.Window, () -> Any)
   fun addNode(android.view.View, ComposeNode)
@@ -1376,6 +1377,10 @@ data class com.datadog.android.sessionreplay.model.Offset
   constructor(Int, Int)
 data class com.datadog.android.sessionreplay.model.RecordData
   constructor(Node, Offset)
+data class com.datadog.android.sessionreplay.model.MetaData
+  constructor(String, Long, Long)
+data class com.datadog.android.sessionreplay.model.FocusData
+  constructor(Boolean = true)
 interface com.datadog.android.sessionreplay.model.Record
 enum com.datadog.android.sessionreplay.model.RecordType
   constructor(Int)
@@ -1385,8 +1390,14 @@ enum com.datadog.android.sessionreplay.model.RecordType
   - FOCUS
   - VIEW_END
   - VISUAL_VIEWPORT
+data class com.datadog.android.sessionreplay.model.MetaRecord : Record
+  constructor(Int = RecordType.META.type, Long, MetaData)
+data class com.datadog.android.sessionreplay.model.FocusRecord : Record
+  constructor(Int = RecordType.FOCUS.type, Long, FocusData = FocusData())
+data class com.datadog.android.sessionreplay.model.ViewEndRecord : Record
+  constructor(Int = RecordType.VIEW_END.type, Long)
 data class com.datadog.android.sessionreplay.model.FullSnapshotRecord : Record
-  constructor(RecordType = RecordType.FULL_SNAPSHOT, Long, RecordData)
+  constructor(Int = RecordType.FULL_SNAPSHOT.type, Long, RecordData)
 enum com.datadog.android.sessionreplay.model.CreationReason
   - INIT
   - MAX_DURATION

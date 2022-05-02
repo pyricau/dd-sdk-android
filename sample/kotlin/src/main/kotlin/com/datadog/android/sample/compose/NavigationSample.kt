@@ -6,6 +6,7 @@
 
 package com.datadog.android.sample.compose
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -31,6 +33,7 @@ import com.datadog.android.compose.trackClick
 import com.datadog.android.rum.tracking.AcceptAllNavDestinations
 import java.lang.IllegalArgumentException
 import kotlin.random.Random
+import com.datadog.android.sample.R
 
 @OptIn(ExperimentalTrackingApi::class)
 @Composable
@@ -72,6 +75,8 @@ fun SimpleView(
         ) {
             Text("Open Next Random View")
         }
+        Image(painter = painterResource(id = R.drawable.ic_dd_icon_red),
+            contentDescription = "Datadog Logo")
     }
 }
 

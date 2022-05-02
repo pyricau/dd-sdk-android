@@ -18,10 +18,16 @@ import androidx.annotation.RequiresApi
 import com.datadog.android.core.internal.CoreFeature
 import com.datadog.android.rum.GlobalRum
 import com.datadog.android.sessionreplay.model.CreationReason
+import com.datadog.android.sessionreplay.model.FocusData
+import com.datadog.android.sessionreplay.model.FocusRecord
 import com.datadog.android.sessionreplay.model.FullSnapshotRecord
+import com.datadog.android.sessionreplay.model.MetaData
+import com.datadog.android.sessionreplay.model.MetaRecord
+import com.datadog.android.sessionreplay.model.Node
 import com.datadog.android.sessionreplay.model.Offset
 import com.datadog.android.sessionreplay.model.RecordData
 import com.datadog.android.sessionreplay.model.Segment
+import com.datadog.android.sessionreplay.model.ViewEndRecord
 import io.opentracing.util.GlobalTracer
 import okhttp3.OkHttpClient
 import java.io.File
@@ -44,6 +50,8 @@ object SessionReplay {
     lateinit var root: ComposeNode
     val rootNodes: MutableMap<Int, ComposeNode> = mutableMapOf()
     val nodes: MutableMap<Int, ComposeNode> = mutableMapOf()
+    val nodesToView: MutableMap<ComposeNode, View> = mutableMapOf()
+
     private val viewTreeStorage by lazy {
         File(
             CoreFeature.contextRef.get()!!.cacheDir,
@@ -127,29 +135,41 @@ object SessionReplay {
         val span = GlobalTracer.get().buildSpan("view tree capture").start()
         val context = GlobalRum.getRumContext()
 
-        val node = window.decorView.rootView.toNode(scale)
+        val rootView = window.decorView.rootView
+        val node = rootView.toNode(scale)
         sessionReplayVitals.logVitals()
         span.finish()
         val start = System.currentTimeMillis()
+        val end = System.currentTimeMillis() + 1000
         node?.let { tree ->
             val segment = Segment(
                 applicationId = context.applicationId,
                 sessionId = context.sessionId,
                 viewId = context.viewId ?: "",
                 start = start,
-                end = start,
+                end = end,
                 hasFullSnapshot = true,
                 recordsCount = 1,
                 creationReason = CreationReason.VIEW_CHANGE,
                 indexInView = 0,
                 records = listOf(
+                    MetaRecord(
+                        timestamp = start,
+                        data = MetaData(
+                            context.viewId ?: "",
+                            rootView.width.toLong(),
+                            rootView.height.toLong()
+                        )
+                    ),
+                    FocusRecord(timestamp = start, focusData = FocusData()),
                     FullSnapshotRecord(
                         timestamp = start,
                         data = RecordData(
                             tree,
                             initialOffset = Offset(0, 0)
                         )
-                    )
+                    ),
+                    ViewEndRecord(timestamp = end)
                 )
             )
             persister.persist(segment)
@@ -196,6 +216,7 @@ object SessionReplay {
         nodes[node.parentId]?.let {
             it.children[node.id] = node
         }
+        nodesToView[node] = view
     }
 
     @JvmStatic
@@ -205,6 +226,7 @@ object SessionReplay {
         if (node.parentId == 0) {
             rootNodes.remove(view.hashCode())
         }
+        nodesToView.remove(node)
     }
 
     fun persistBitmap(bitmap: Bitmap, id: String) {

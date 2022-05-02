@@ -10,6 +10,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.Gravity
@@ -22,6 +23,7 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.SemanticsModifier
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -204,10 +206,92 @@ internal fun ComposeNode.toJson(scale: Float): JsonElement? {
         jsonElement.addProperty("label", textValue)
     }
 
-    // if(imageRole!=null){
-    //     layoutInfo.getModifierInfo().filter { it is  }
-    // }
     return jsonElement
+}
+
+internal fun ComposeNode.toNode(scale: Float): Node? {
+    // val jsonElement = JsonObject()
+    val width = this.layoutInfo.width
+    val height = this.layoutInfo.height
+    val scaledHeight = height.toPx(scale)
+    val scaledWidth = width.toPx(scale)
+    // val x = this.layoutInfo.coordinates.positionInParent().x
+    // val y = this.layoutInfo.coordinates.positionInParent().y
+    // jsonElement.addProperty("displayName", this::class.java.simpleName)
+    // jsonElement.addProperty("height", scaledHeight)
+    // jsonElement.addProperty("width", scaledWidth)
+    // jsonElement.addProperty("x", x.toPx(scale))
+    // jsonElement.addProperty("y", y.toPx(scale))
+    // jsonElement.addProperty("type", "div")
+    // jsonElement.addProperty("opacity", 1)
+    // val childrenJsonArray = JsonArray()
+    // children.values.map { it.toJson(scale) }.fold(childrenJsonArray, { acc, element ->
+    //     acc.add(element)
+    //     acc
+    // })
+    // if (childrenJsonArray.size() > 0) {
+    //     jsonElement.add("children", childrenJsonArray)
+    // }
+    val semanticsModifiers =
+        layoutInfo.getModifierInfo()
+            .filter { it.modifier is SemanticsModifier }
+            .map { it.modifier as SemanticsModifier }
+    // val textProperties =
+    //     semanticsModifiers.mapNotNull { it.semanticsConfiguration.getOrNull(SemanticsProperties.Text) }
+    //         .flatten()
+    val mapNotNull =
+        semanticsModifiers.mapNotNull { it.semanticsConfiguration.getOrNull(SemanticsProperties.Role) }
+    val imageRole =
+        mapNotNull
+            .filter { it.toString() == "Image" }
+    // if (textProperties.size > 0) {
+    //     val textValue = textProperties.joinToString(" ")
+    //     jsonElement.addProperty("type", "text")
+    //     jsonElement.addProperty("label", textValue)
+    // }
+
+    // if(imageRole!=null){
+    // val bitmap: Bitmap =
+    //     Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    // val drawModifiers =
+    //     layoutInfo.getModifierInfo().map { it.modifier }.filter { it is  DrawModifier}.map { it as DrawModifier }
+    // val canvasDrawScope = CanvasDrawScope()
+    // // }
+    // val bitmapCanvas = androidx.compose.ui.graphics.Canvas(Canvas(bitmap))
+    // drawModifiers.forEach {
+    //     canvasDrawScope.draw(Density(scale),LayoutDirection.Ltr, bitmapCanvas, Size(width.toFloat(), height.toFloat())){
+    //         with(this) {
+    //             with(it) {
+    //                 draw()
+    //             }
+    //         }
+    //     }
+    // }
+    val childNodes = LinkedList<Node>()
+    children.values.forEach {
+        childNodes.add(it.toNode(scale)!!)
+    }
+    if (imageRole.isNotEmpty()) {
+        SessionReplay.nodesToView[this]?.let {
+            // val childWidth = it.width
+            // val childHeight = it.height
+            if (width > 0 && height > 0) {
+                val bitmap: Bitmap =
+                    Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                val boundsInRoot = this.layoutInfo.coordinates.boundsInRoot()
+                val matrix =
+                    Matrix().apply { this.setTranslate(-boundsInRoot.left, -boundsInRoot.top) }
+                canvas.setMatrix(matrix)
+                it.draw(canvas)
+                bitmap.scale(scaledWidth, scaledHeight)
+                SessionReplay.persistBitmap(
+                    bitmap, System.currentTimeMillis().toString()
+                )
+            }
+        }
+    }
+    return ElementNode(childNodes = childNodes)
 }
 
 internal fun captureViewBitmap(view: View, scaledWidth: Int, scaledHeight: Int): Bitmap {
@@ -226,13 +310,13 @@ internal fun View.toNode(scale: Float): Node? {
         return null
     }
     if (this.javaClass.name == "androidx.compose.ui.platform.AndroidComposeView") {
-        return null
-        // return SessionReplay.rootNodes[this.hashCode()]?.toNode(scale)
+        return SessionReplay.rootNodes[this.hashCode()]?.toNode(scale)
     }
 
     val attributes = HashMap<String, Any>()
     val scaledHeight = height.toPx(scale)
     val scaledWidth = width.toPx(scale)
+    attributes["className"] = this.javaClass.simpleName
     attributes["width"] = scaledWidth
     attributes["height"] = scaledHeight
     attributes["x"] = this.x.toPx(scale)
@@ -399,3 +483,4 @@ private fun addLinearLayoutAttributes(
 // fun ComposeNode.toNode(scale: Float): Node? {
 //     return null
 // }
+

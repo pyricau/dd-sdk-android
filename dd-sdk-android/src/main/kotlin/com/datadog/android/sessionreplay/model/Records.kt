@@ -56,7 +56,9 @@ data class TextNode(
 data class Offset(val top: Int, val left: Int)
 
 data class RecordData(val node: Node, val initialOffset: Offset)
-
+data class MetaData(val href: String, val width: Long, val height: Long) // where href is
+// the RUM view id (identifier)
+data class FocusData(val hasFocus: Boolean = true)
 interface Record {
 }
 
@@ -69,8 +71,25 @@ enum class RecordType(val type: Int) {
     VISUAL_VIEWPORT(8),
 }
 
+data class MetaRecord(
+    val type: Int = RecordType.META.type,
+    val timestamp: Long,
+    val data: MetaData
+):Record
+
+data class FocusRecord(
+    val type: Int = RecordType.FOCUS.type,
+    val timestamp: Long,
+    val focusData:FocusData = FocusData()
+):Record
+
+data class ViewEndRecord(
+    val type: Int = RecordType.VIEW_END.type,
+    val timestamp: Long
+):Record
+
 data class FullSnapshotRecord(
-    val type: RecordType = RecordType.FULL_SNAPSHOT,
+    val type: Int = RecordType.FULL_SNAPSHOT.type,
     val timestamp: Long,
     val data: RecordData
 ) : Record
