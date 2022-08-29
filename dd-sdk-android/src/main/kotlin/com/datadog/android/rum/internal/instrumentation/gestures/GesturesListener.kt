@@ -82,7 +82,7 @@ internal class GesturesListener(
         val decorView = windowReference.get()?.decorView ?: return false
 
         // we only start the user action once
-        if (scrollEventType == null) {
+        if (scrollEventType == null && startDownEvent != null) {
             // check if we find a valid target
             val scrollTarget = findTargetForScroll(decorView, startDownEvent.x, startDownEvent.y)
             if (scrollTarget != null) {
