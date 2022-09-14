@@ -18,13 +18,12 @@ import com.datadog.android.v2.core.internal.ContextProvider
 import com.datadog.android.v2.core.internal.net.DataUploader
 import com.datadog.android.v2.core.internal.storage.BatchId
 import com.datadog.android.v2.core.internal.storage.Storage
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 
-// TODO RUMM-0000 Should replace com.datadog.android.core.internal.net.DataUploadRunnable once
-//  features are configured as V2
 internal class DataUploadRunnable(
     private val threadPoolExecutor: ScheduledThreadPoolExecutor,
     private val storage: Storage,
@@ -42,11 +41,18 @@ internal class DataUploadRunnable(
     //  region Runnable
 
     @WorkerThread
+    @Suppress("UnsafeThirdPartyFunctionCall") // called inside a dedicated executor
     override fun run() {
         if (isNetworkAvailable() && isSystemReady()) {
             val context = contextProvider.context
+            // TODO RUMM-0000 it should be already on the worker thread and if readNextBatch is async,
+            //  we should wait until it completes before scheduling further
+            val lock = CountDownLatch(1)
             storage.readNextBatch(
-                noBatchCallback = { increaseInterval() }
+                noBatchCallback = {
+                    increaseInterval()
+                    lock.countDown()
+                }
             ) { batchId, reader ->
                 val batch = reader.read()
                 val batchMeta = reader.currentMetadata()
@@ -57,7 +63,9 @@ internal class DataUploadRunnable(
                     batch,
                     batchMeta
                 )
+                lock.countDown()
             }
+            lock.await(1, TimeUnit.SECONDS)
         }
 
         scheduleNextUpload()
