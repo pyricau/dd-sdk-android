@@ -8,6 +8,7 @@ package com.datadog.android.v2.core.internal.data.upload
 
 import androidx.annotation.WorkerThread
 import com.datadog.android.core.configuration.UploadFrequency
+import com.datadog.android.core.internal.CoreFeature
 import com.datadog.android.core.internal.data.upload.UploadRunnable
 import com.datadog.android.core.internal.net.info.NetworkInfoProvider
 import com.datadog.android.core.internal.system.SystemInfoProvider
@@ -65,7 +66,7 @@ internal class DataUploadRunnable(
                 )
                 lock.countDown()
             }
-            lock.await(1, TimeUnit.SECONDS)
+            lock.await(CoreFeature.NETWORK_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         }
 
         scheduleNextUpload()
