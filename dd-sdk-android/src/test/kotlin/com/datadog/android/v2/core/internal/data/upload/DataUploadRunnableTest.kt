@@ -404,6 +404,11 @@ internal class DataUploadRunnableTest {
 
     @Test
     fun `𝕄 do nothing 𝕎 no batch to send`() {
+        // Given
+        whenever(mockStorage.readNextBatch(any(), any())) doAnswer {
+            it.getArgument<() -> Unit>(0)()
+        }
+
         // When
         testedRunnable.run()
 
