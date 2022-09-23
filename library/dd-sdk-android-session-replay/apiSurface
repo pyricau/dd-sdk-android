@@ -222,6 +222,14 @@ data class com.datadog.android.sessionreplay.model.MobileSegment
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Vertical
+data class com.datadog.android.sessionreplay.processor.EnrichedRecord
+  constructor(String, String, String, List<com.datadog.android.sessionreplay.model.MobileSegment.MobileRecord>)
+  fun toJson(): String
+  companion object 
+    const val APPLICATION_ID_KEY: String
+    const val SESSION_ID_KEY: String
+    const val VIEW_ID_KEY: String
+    const val RECORDS_KEY: String
 interface com.datadog.android.sessionreplay.utils.RumContextProvider
   fun getRumContext(): SessionReplayRumContext
 data class com.datadog.android.sessionreplay.utils.SessionReplayRumContext

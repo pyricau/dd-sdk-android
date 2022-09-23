@@ -11,27 +11,28 @@ import android.content.Context
 import com.datadog.android.core.configuration.Configuration
 import com.datadog.android.core.internal.CoreFeature
 import com.datadog.android.core.internal.SdkFeature
-import com.datadog.android.core.internal.net.DataUploader
-import com.datadog.android.core.internal.net.NoOpDataUploader
 import com.datadog.android.core.internal.persistence.PersistenceStrategy
 import com.datadog.android.core.internal.utils.sdkLogger
 import com.datadog.android.sessionreplay.LifecycleCallback
 import com.datadog.android.sessionreplay.SessionReplayLifecycleCallback
 import com.datadog.android.sessionreplay.internal.domain.SessionReplayRecordPersistenceStrategy
 import com.datadog.android.sessionreplay.internal.domain.SessionReplaySerializedRecordWriter
+import com.datadog.android.sessionreplay.internal.net.SessionReplayOkHttpUploader
+import com.datadog.android.sessionreplay.internal.net.SessionReplayRequestFactory
+import com.datadog.android.v2.api.RequestFactory
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class SessionReplayFeature(
-    coreFeature: CoreFeature,
-    private val configuration: Configuration.Feature.SessionReplay,
-    private val sessionReplayCallbackProvider: (PersistenceStrategy<String>) ->
-    LifecycleCallback = {
-        SessionReplayLifecycleCallback(
-            SessionReplayContextProvider(),
-            configuration.privacy,
-            SessionReplaySerializedRecordWriter(it.getWriter())
-        )
-    }
+        coreFeature: CoreFeature,
+        private val configuration: Configuration.Feature.SessionReplay,
+        private val sessionReplayCallbackProvider: (PersistenceStrategy<String>) ->
+        LifecycleCallback = {
+            SessionReplayLifecycleCallback(
+                    SessionReplayContextProvider(),
+                    configuration.privacy,
+                    SessionReplaySerializedRecordWriter(it.getWriter())
+            )
+        }
 ) : SdkFeature<String, Configuration.Feature.SessionReplay>(coreFeature) {
 
     internal lateinit var appContext: Context
@@ -41,8 +42,8 @@ internal class SessionReplayFeature(
     // region SDKFeature
 
     override fun onInitialize(
-        context: Context,
-        configuration: Configuration.Feature.SessionReplay
+            context: Context,
+            configuration: Configuration.Feature.SessionReplay
     ) {
         super.onInitialize(context, configuration)
         appContext = context
@@ -57,21 +58,31 @@ internal class SessionReplayFeature(
     }
 
     override fun createPersistenceStrategy(
-        context: Context,
-        configuration: Configuration.Feature.SessionReplay
+            context: Context,
+            configuration: Configuration.Feature.SessionReplay
     ): PersistenceStrategy<String> {
         return SessionReplayRecordPersistenceStrategy(
-            coreFeature.trackingConsentProvider,
-            coreFeature.storageDir,
-            coreFeature.persistenceExecutorService,
-            sdkLogger,
-            coreFeature.localDataEncryption
+                coreFeature.contextProvider,
+                coreFeature.trackingConsentProvider,
+                coreFeature.storageDir,
+                coreFeature.persistenceExecutorService,
+                sdkLogger,
+                coreFeature.localDataEncryption
         )
     }
 
-    override fun createUploader(configuration: Configuration.Feature.SessionReplay): DataUploader {
-        // TODO: This will be added later in RUMM-2273
-        return NoOpDataUploader()
+    override fun createRequestFactory(configuration: Configuration.Feature.SessionReplay):
+            RequestFactory {
+        return SessionReplayRequestFactory(
+                SessionReplayOkHttpUploader(
+                        configuration.endpointUrl,
+                        coreFeature.clientToken,
+                        coreFeature.sourceName,
+                        coreFeature.sdkVersion,
+                        coreFeature.okHttpClient,
+                        coreFeature.androidInfoProvider,
+                        coreFeature)
+        )
     }
 
     // endregion

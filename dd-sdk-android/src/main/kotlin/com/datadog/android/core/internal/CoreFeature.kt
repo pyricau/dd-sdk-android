@@ -386,7 +386,7 @@ internal class CoreFeature {
 
         if (BuildConfig.DEBUG) {
             @Suppress("UnsafeThirdPartyFunctionCall") // NPE cannot happen here
-            builder.addNetworkInterceptor(CurlInterceptor())
+            builder.addNetworkInterceptor(CurlInterceptor(true))
         } else {
             @Suppress("UnsafeThirdPartyFunctionCall") // NPE cannot happen here
             builder.addInterceptor(GzipRequestInterceptor())

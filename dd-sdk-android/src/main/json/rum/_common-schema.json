@@ -316,7 +316,7 @@
             "plan": {
               "type": "number",
               "description": "Session plan: 1 is the 'lite' plan, 2 is the 'replay' plan",
-              "enum": [1, 2]
+              "enum": [1, 2, 4]
             }
           }
         },

@@ -241,7 +241,7 @@ internal class RumActionScope(
                 architecture = sdkContext.deviceInfo.architecture
             ),
             context = ActionEvent.Context(additionalProperties = attributes),
-            dd = ActionEvent.Dd(session = ActionEvent.DdSession(plan = ActionEvent.Plan.PLAN_1))
+            dd = ActionEvent.Dd(session = ActionEvent.DdSession(plan = ActionEvent.Plan.PLAN_4))
         )
         writer.write(actionEvent)
 

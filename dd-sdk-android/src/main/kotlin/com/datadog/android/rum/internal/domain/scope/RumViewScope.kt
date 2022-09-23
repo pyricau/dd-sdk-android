@@ -617,7 +617,8 @@ internal open class RumViewScope(
             application = ViewEvent.Application(rumContext.applicationId),
             session = ViewEvent.ViewEventSession(
                 id = rumContext.sessionId,
-                type = ViewEvent.ViewEventSessionType.USER
+                type = ViewEvent.ViewEventSessionType.USER,
+                    hasReplay = true
             ),
             source = rumEventSourceProvider.viewEventSource,
             os = ViewEvent.Os(
@@ -635,7 +636,7 @@ internal open class RumViewScope(
             context = ViewEvent.Context(additionalProperties = attributes),
             dd = ViewEvent.Dd(
                 documentVersion = version,
-                session = ViewEvent.DdSession(plan = ViewEvent.Plan.PLAN_1)
+                session = ViewEvent.DdSession(plan = ViewEvent.Plan.PLAN_4)
             )
         )
 

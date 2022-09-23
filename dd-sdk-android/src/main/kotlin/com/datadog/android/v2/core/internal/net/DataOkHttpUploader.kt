@@ -36,7 +36,9 @@ internal class DataOkHttpUploader(
         batchMeta: ByteArray?
     ): UploadStatus {
         val request = requestFactory.create(context, batch, batchMeta)
-
+        if(request.url.isEmpty()){
+            return UploadStatus.SUCCESS
+        }
         val uploadStatus = try {
             executeUploadRequest(request)
         } catch (e: Throwable) {

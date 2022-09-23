@@ -8,13 +8,9 @@ package com.datadog.android.core.internal.net
 
 import com.datadog.android.core.internal.utils.sdkLogger
 import com.datadog.android.log.internal.utils.warningWithTelemetry
+import okhttp3.*
 import java.io.IOException
 import kotlin.jvm.Throws
-import okhttp3.Interceptor
-import okhttp3.MediaType
-import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.Response
 import okio.BufferedSink
 import okio.GzipSink
 import okio.Okio
@@ -38,42 +34,23 @@ internal class GzipRequestInterceptor : Interceptor {
         val originalRequest: Request = chain.request()
         val body = originalRequest.body()
 
-        return if (body == null || originalRequest.header(HEADER_ENCODING) != null) {
+        return if (body == null ||
+                originalRequest.header(HEADER_ENCODING) != null ||
+                body is GzipRequestBody||
+                body is MultipartBody) {
             chain.proceed(originalRequest)
-        } else {
+        }
+        else {
             val compressedRequest = try {
                 originalRequest.newBuilder()
                     .header(HEADER_ENCODING, ENCODING_GZIP)
-                    .method(originalRequest.method(), gzip(body))
+                    .method(originalRequest.method(), GzipRequestBody(body))
                     .build()
             } catch (e: Exception) {
                 sdkLogger.warningWithTelemetry("Unable to gzip request body", e)
                 originalRequest
             }
             chain.proceed(compressedRequest)
-        }
-    }
-
-    // endregion
-
-    // region Internal
-
-    private fun gzip(body: RequestBody): RequestBody? {
-        return object : RequestBody() {
-            override fun contentType(): MediaType? {
-                return body.contentType()
-            }
-
-            override fun contentLength(): Long {
-                return -1 // We don't know the compressed length in advance!
-            }
-
-            @Suppress("UnsafeThirdPartyFunctionCall") // write to is expected to throw IOExceptions
-            override fun writeTo(sink: BufferedSink) {
-                val gzipSink: BufferedSink = Okio.buffer(GzipSink(sink))
-                body.writeTo(gzipSink)
-                gzipSink.close()
-            }
         }
     }
 

@@ -29,14 +29,18 @@ internal abstract class DataOkHttpUploaderV2(
     internal enum class TrackType(val trackName: String) {
         LOGS("logs"),
         RUM("rum"),
-        SPANS("spans")
+        SPANS("spans"),
+        SESSION_REPLAY("replay")
     }
 
-    private val uploaderName = javaClass.simpleName
+    internal val uploaderName = javaClass.simpleName
 
     internal val clientToken = if (isValidHeaderValue(rawClientToken)) rawClientToken else ""
     internal val source: String = sanitizeHeaderValue(rawSource)
     internal val sdkVersion: String = sanitizeHeaderValue(rawSdkVersion)
+    internal val requestId:String by lazy {
+        UUID.randomUUID().toString()
+    }
 
     private val userAgent by lazy {
         sanitizeHeaderValue(System.getProperty(SYSTEM_UA))
@@ -52,7 +56,6 @@ internal abstract class DataOkHttpUploaderV2(
 
     @Suppress("TooGenericExceptionCaught")
     override fun upload(data: ByteArray): UploadStatus {
-        val requestId = UUID.randomUUID().toString()
         val uploadStatus = try {
             executeUploadRequest(data, requestId)
         } catch (e: Throwable) {
@@ -103,14 +106,16 @@ internal abstract class DataOkHttpUploaderV2(
     private fun buildRequest(data: ByteArray, requestId: String): Request {
         val builder = Request.Builder()
             .url(buildUrl())
-            .post(RequestBody.create(null, data))
+            .post(buildRequestBody(data))
 
         buildHeaders(builder, requestId)
 
         return builder.build()
     }
 
-    private fun buildUrl(): String {
+    internal open fun buildRequestBody(data: ByteArray) = RequestBody.create(null, data)
+
+    internal fun buildUrl(): String {
         val queryParams = buildQueryParameters()
         return if (queryParams.isEmpty()) {
             intakeUrl
@@ -119,7 +124,7 @@ internal abstract class DataOkHttpUploaderV2(
         }
     }
 
-    private fun buildHeaders(builder: Request.Builder, requestId: String) {
+    internal fun buildHeaders(builder: Request.Builder, requestId: String) {
         builder.addHeader(HEADER_API_KEY, clientToken)
         builder.addHeader(HEADER_EVP_ORIGIN, source)
         builder.addHeader(HEADER_EVP_ORIGIN_VERSION, sdkVersion)
@@ -132,7 +137,7 @@ internal abstract class DataOkHttpUploaderV2(
         return emptyMap()
     }
 
-    private fun responseCodeToUploadStatus(code: Int): UploadStatus {
+    internal fun responseCodeToUploadStatus(code: Int): UploadStatus {
         return when (code) {
             HTTP_ACCEPTED -> UploadStatus.SUCCESS
             HTTP_BAD_REQUEST -> UploadStatus.HTTP_CLIENT_ERROR
@@ -189,6 +194,7 @@ internal abstract class DataOkHttpUploaderV2(
 
         internal const val CONTENT_TYPE_JSON = "application/json"
         internal const val CONTENT_TYPE_TEXT_UTF8 = "text/plain;charset=UTF-8"
+        internal const val CONTENT_TYPE_MUTLIPART_FORM = "multipart/form-data"
 
         private const val UPLOAD_URL = "%s/api/v2/%s"
 

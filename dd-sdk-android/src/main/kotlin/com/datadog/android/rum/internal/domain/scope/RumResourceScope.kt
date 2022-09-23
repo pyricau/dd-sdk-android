@@ -231,7 +231,7 @@ internal class RumResourceScope(
             dd = ResourceEvent.Dd(
                 traceId = traceId,
                 spanId = spanId,
-                session = ResourceEvent.DdSession(plan = ResourceEvent.Plan.PLAN_1)
+                session = ResourceEvent.DdSession(plan = ResourceEvent.Plan.PLAN_4)
             )
         )
         writer.write(resourceEvent)
@@ -323,7 +323,7 @@ internal class RumResourceScope(
                 architecture = sdkContext.deviceInfo.architecture
             ),
             context = ErrorEvent.Context(additionalProperties = attributes),
-            dd = ErrorEvent.Dd(session = ErrorEvent.DdSession(plan = ErrorEvent.Plan.PLAN_1))
+            dd = ErrorEvent.Dd(session = ErrorEvent.DdSession(plan = ErrorEvent.Plan.PLAN_4))
         )
         writer.write(errorEvent)
         sent = true

@@ -617,6 +617,7 @@ data class com.datadog.android.rum.model.ActionEvent
     constructor(kotlin.Number)
     - PLAN_1
     - PLAN_2
+    - PLAN_4
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Plan
@@ -818,6 +819,7 @@ data class com.datadog.android.rum.model.ErrorEvent
     constructor(kotlin.Number)
     - PLAN_1
     - PLAN_2
+    - PLAN_4
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Plan
@@ -999,6 +1001,7 @@ data class com.datadog.android.rum.model.LongTaskEvent
     constructor(kotlin.Number)
     - PLAN_1
     - PLAN_2
+    - PLAN_4
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Plan
@@ -1212,6 +1215,7 @@ data class com.datadog.android.rum.model.ResourceEvent
     constructor(kotlin.Number)
     - PLAN_1
     - PLAN_2
+    - PLAN_4
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Plan
@@ -1430,6 +1434,7 @@ data class com.datadog.android.rum.model.ViewEvent
     constructor(kotlin.Number)
     - PLAN_1
     - PLAN_2
+    - PLAN_4
     fun toJson(): com.google.gson.JsonElement
     companion object 
       fun fromJson(kotlin.String): Plan

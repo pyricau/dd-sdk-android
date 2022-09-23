@@ -19,12 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
 
-@Extensions(
-    ExtendWith(MockitoExtension::class),
-    ExtendWith(ForgeExtension::class)
-)
-@MockitoSettings(strictness = Strictness.LENIENT)
-@ForgeConfiguration(Configurator::class)
+    @Extensions(
+        ExtendWith(MockitoExtension::class),
+        ExtendWith(ForgeExtension::class)
+    )
+    @MockitoSettings(strictness = Strictness.LENIENT)
+    @ForgeConfiguration(Configurator::class)
 internal class SessionReplayRecordSerializerTest {
 
     lateinit var testedRecordSerializer: SessionReplayRecordSerializer
