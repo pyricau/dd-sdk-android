@@ -24,6 +24,7 @@ internal class TracesFragment : Fragment(), View.OnClickListener {
     lateinit var viewModel: TracesViewModel
     lateinit var progressBarAsync: ProgressBar
     lateinit var progressBarCoroutine: ProgressBar
+    lateinit var progressBarRx: ProgressBar
     lateinit var progressBarRequest: ProgressBar
     lateinit var requestStatus: ImageView
 
@@ -37,10 +38,12 @@ internal class TracesFragment : Fragment(), View.OnClickListener {
         val rootView = inflater.inflate(R.layout.fragment_traces, container, false)
         rootView.findViewById<Button>(R.id.start_async_operation).setOnClickListener(this)
         rootView.findViewById<Button>(R.id.start_coroutine_operation).setOnClickListener(this)
+        rootView.findViewById<Button>(R.id.start_rx_operation).setOnClickListener(this)
         rootView.findViewById<Button>(R.id.start_request).setOnClickListener(this)
         rootView.findViewById<Button>(R.id.start_404_request).setOnClickListener(this)
         progressBarAsync = rootView.findViewById(R.id.spinner_async)
         progressBarCoroutine = rootView.findViewById(R.id.spinner_coroutine)
+        progressBarRx = rootView.findViewById(R.id.spinner_rx)
         progressBarRequest = rootView.findViewById(R.id.spinner_request)
         requestStatus = rootView.findViewById(R.id.request_status)
         return rootView
@@ -73,6 +76,7 @@ internal class TracesFragment : Fragment(), View.OnClickListener {
 
     // region View.OnClickListener
 
+    @Suppress("LongMethod")
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.start_async_operation -> {
@@ -92,6 +96,15 @@ internal class TracesFragment : Fragment(), View.OnClickListener {
                 viewModel.startCoroutineOperation(
                     onDone = {
                         progressBarCoroutine.visibility = View.INVISIBLE
+                    }
+                )
+            }
+            R.id.start_rx_operation -> {
+                progressBarRx.visibility = View.VISIBLE
+                progressBarRx.isIndeterminate = true
+                viewModel.startRxOperation(
+                    onDone = {
+                        progressBarRx.visibility = View.INVISIBLE
                     }
                 )
             }

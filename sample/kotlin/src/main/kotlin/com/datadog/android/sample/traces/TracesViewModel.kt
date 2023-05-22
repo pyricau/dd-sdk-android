@@ -17,12 +17,18 @@ import com.datadog.android.ktx.coroutine.sendErrorToDatadog
 import com.datadog.android.ktx.coroutine.withContextTraced
 import com.datadog.android.ktx.tracing.withinSpan
 import com.datadog.android.log.Logger
+import com.datadog.android.rx.sendErrorToDatadog
 import com.datadog.android.sample.BuildConfig
 import com.datadog.android.sample.data.Result
 import com.datadog.android.sample.server.LocalServer
 import io.opentracing.Span
 import io.opentracing.log.Fields
 import io.opentracing.util.GlobalTracer
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.core.SingleSource
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
@@ -34,14 +40,17 @@ import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import timber.log.Timber
 import java.util.Locale
 import java.util.Random
 
+@Suppress("TooManyFunctions")
 internal class TracesViewModel(private val okHttpClient: OkHttpClient) : ViewModel() {
 
     private var asyncOperationTask: AsyncTask<Unit, Unit, Unit>? = null
     private var networkRequestTask: AsyncTask<Unit, Unit, Result>? = null
     private var localServer: LocalServer = LocalServer()
+    private var rxDisposable: Disposable? = null
 
     private val scope = MainScope()
 
@@ -70,6 +79,29 @@ internal class TracesViewModel(private val okHttpClient: OkHttpClient) : ViewMod
             performFlowTask()
 
             onDone()
+        }
+    }
+
+    fun startRxOperation(
+        onDone: () -> Unit = {}
+    ) {
+        if (rxDisposable?.isDisposed ?: true) {
+            rxDisposable = Single.zip(
+                getRxWithPath(okHttpClient, "debug-android-crashes"),
+                getRxWithPath(okHttpClient, "monitor-roku-with-rum"),
+                getRxWithPath(okHttpClient, "hybrid-app-monitoring")
+            ) { a, b, c ->
+                Timber.v(a)
+                Timber.v(b)
+                Timber.v(c)
+                "ok"
+            }
+                .sendErrorToDatadog()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { _ ->
+                    onDone()
+                }
         }
     }
 
@@ -180,6 +212,22 @@ internal class TracesViewModel(private val okHttpClient: OkHttpClient) : ViewMod
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
+    private fun getRxWithPath(okHttpClient: OkHttpClient, path: String): SingleSource<String> {
+        return Single.create {
+            try {
+                val request = Request.Builder()
+                    .get()
+                    .url("https://www.datadoghq.com/blog/$path/")
+                    .build()
+                val response = okHttpClient.newCall(request).execute()
+                it.onSuccess(response.body()?.string().orEmpty())
+            } catch (e: Exception) {
+                it.onError(e)
+            }
+        }
+    }
+
     // endregion
 
     // region RequestTask
@@ -243,6 +291,7 @@ internal class TracesViewModel(private val okHttpClient: OkHttpClient) : ViewMod
                 is Result.Success<*> -> {
                     onResponse(result.data as Response)
                 }
+
                 is Result.Failure -> {
                     if (result.throwable != null) {
                         onException(result.throwable)

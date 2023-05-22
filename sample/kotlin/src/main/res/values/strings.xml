@@ -33,6 +33,7 @@
     <string name="msg_async_operation">Async Operation (~5s)</string>
     <string name="msg_network_request">Network Request (~1s)</string>
     <string name="msg_coroutine_operation">Coroutine operations (~5s)</string>
+    <string name="msg_rx_operation">Rx operations (~5s)</string>
     <string name="msg_rum_use_cases">RUM use cases</string>
     <string name="msg_clear_all_data">Are you sure you want to clear all unsent data. You’ll lose any data still on disk. Note that this won’t delete data already sent to Datadog servers.</string>
     <string name="msg_all_data_cleared">All unsent data has been cleared.</string>

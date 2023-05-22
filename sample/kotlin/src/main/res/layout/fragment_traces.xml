@@ -82,6 +82,40 @@
         app:layout_constraintTop_toBottomOf="@id/start_coroutine_operation"
         android:visibility="invisible"/>
 
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/rx_operation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:padding="16dp"
+        android:layout_margin="8dp"
+        android:text="@string/msg_rx_operation"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/start_coroutine_operation"/>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/start_rx_operation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="@string/button_start"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rx_operation"/>
+
+    <ProgressBar
+        android:id="@+id/spinner_rx"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        style="?android:attr/progressBarStyleHorizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/start_rx_operation"
+        android:visibility="invisible"/>
+
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/network_request"
@@ -94,7 +128,7 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/spinner_coroutine"/>
+        app:layout_constraintTop_toBottomOf="@id/spinner_rx"/>
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/start_request"
