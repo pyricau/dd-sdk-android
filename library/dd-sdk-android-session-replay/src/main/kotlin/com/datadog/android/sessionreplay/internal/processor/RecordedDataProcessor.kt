@@ -244,6 +244,7 @@ internal class RecordedDataProcessor(
         return when (this) {
             is MobileSegment.Wireframe.ShapeWireframe -> bounds()
             is MobileSegment.Wireframe.TextWireframe -> bounds()
+            is MobileSegment.Wireframe.ImageWireframe -> bounds()
         }
     }
 
