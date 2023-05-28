@@ -11,7 +11,9 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import com.datadog.android.sessionreplay.SessionReplayPrivacy
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
 import com.datadog.android.sessionreplay.internal.processor.RecordedDataProcessor
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueItemEnricher
 import com.datadog.android.sessionreplay.internal.recorder.ComposedOptionSelectorDetector
 import com.datadog.android.sessionreplay.internal.recorder.DefaultOptionSelectorDetector
 import com.datadog.android.sessionreplay.internal.recorder.OptionSelectorDetector
@@ -40,6 +42,14 @@ internal class SessionReplayLifecycleCallback(
     customOptionSelectorDetectors: List<OptionSelectorDetector> = emptyList()
 ) : LifecycleCallback {
 
+    private val blockingQueueHandlerExecutorService = ThreadPoolExecutor(
+            CORE_DEFAULT_POOL_SIZE,
+            Runtime.getRuntime().availableProcessors(),
+            THREAD_POOL_MAX_KEEP_ALIVE_MS,
+            TimeUnit.MILLISECONDS,
+            LinkedBlockingDeque()
+    )
+
     @Suppress("UnsafeThirdPartyFunctionCall") // workQueue can't be null
     private val processorExecutorService = ThreadPoolExecutor(
         CORE_DEFAULT_POOL_SIZE,
@@ -55,8 +65,10 @@ internal class SessionReplayLifecycleCallback(
         recordWriter,
         recordCallback
     )
+    private val blockingQueueItemEnricher = BlockingQueueItemEnricher(rumContextProvider, timeProvider, recordCallback)
+    private val blockingQueueHandler = BlockingQueueHandler(processor, blockingQueueItemEnricher, blockingQueueHandlerExecutorService)
     internal var viewOnDrawInterceptor = ViewOnDrawInterceptor(
-        processor,
+        blockingQueueHandler,
         SnapshotProducer(
             TreeViewTraversal(customMappers + privacy.mappers()),
             ComposedOptionSelectorDetector(

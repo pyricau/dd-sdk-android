@@ -8,11 +8,18 @@ package com.datadog.android.sessionreplay.internal.processor
 
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
+import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 import com.datadog.android.sessionreplay.model.MobileSegment
 
 internal interface Processor {
 
-    fun processScreenSnapshots(nodes: List<Node>, systemInformation: SystemInformation)
+    fun processScreenSnapshotsAsync(
+            newContext: SessionReplayRumContext,
+            currentContext: SessionReplayRumContext,
+            timestamp: Long,
+            nodes: List<Node>,
+            systemInformation: SystemInformation
+    )
 
     fun processTouchEventsRecords(touchEventsRecords: List<MobileSegment.MobileRecord>)
 }

@@ -39,23 +39,21 @@ internal class RecordedDataProcessor(
     private var lastSnapshotTimestamp = 0L
     private var previousOrientation = Configuration.ORIENTATION_UNDEFINED
 
-    @MainThread
-    override fun processScreenSnapshots(
+    @WorkerThread
+    override fun processScreenSnapshotsAsync(
+        newContext: SessionReplayRumContext,
+        currentContext: SessionReplayRumContext,
+        timestamp: Long,
         nodes: List<Node>,
         systemInformation: SystemInformation
     ) {
-        buildRunnable { timestamp, newContext, currentContext ->
-            Runnable {
-                @Suppress("ThreadSafety") // this runs inside an executor
-                handleSnapshots(
-                    newContext,
-                    currentContext,
-                    timestamp,
-                    nodes,
-                    systemInformation
-                )
-            }
-        }?.let { executeRunnable(it) }
+        handleSnapshots(
+                newContext,
+                currentContext,
+                timestamp,
+                nodes,
+                systemInformation
+        )
     }
 
     @MainThread
