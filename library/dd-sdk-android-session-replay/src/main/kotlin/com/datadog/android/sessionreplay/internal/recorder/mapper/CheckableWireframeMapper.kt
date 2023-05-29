@@ -8,6 +8,7 @@ package com.datadog.android.sessionreplay.internal.recorder.mapper
 
 import android.view.View
 import android.widget.Checkable
+import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.model.MobileSegment
 import com.datadog.android.sessionreplay.utils.ViewUtils
@@ -16,7 +17,7 @@ internal abstract class CheckableWireframeMapper<T>(viewUtils: ViewUtils) :
     BaseWireframeMapper<T, MobileSegment.Wireframe>(viewUtils = viewUtils)
         where T : View, T : Checkable {
 
-    override fun map(view: T, mappingContext: MappingContext): List<MobileSegment.Wireframe> {
+    override fun map(view: T, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?): List<MobileSegment.Wireframe> {
         val mainWireframes = resolveMainWireframes(view, mappingContext)
         val checkableWireframes = if (view.isChecked) {
             resolveCheckedCheckable(view, mappingContext)

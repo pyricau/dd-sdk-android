@@ -40,7 +40,7 @@ internal class BlockingQueueHandler(
 
     @WorkerThread
     private fun shouldHandleFirstItem(firstItem: BlockingQueueItem): Boolean {
-        return firstItem.nodes.isNotEmpty() && firstItem.loadingImages == 0
+        return firstItem.nodes.isNotEmpty() && firstItem.pendingImages == 0
     }
 
     @WorkerThread
@@ -59,7 +59,9 @@ internal class BlockingQueueHandler(
                         nodes = firstItem.nodes,
                         systemInformation = firstItem.systemInformation
                 )
+                println("yondbg handle first item - queue is now ${workQueue.size}")
             } else {
+                println("yondbg dont handle the first item")
                 break
             }
         }

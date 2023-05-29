@@ -7,6 +7,7 @@
 package com.datadog.android.sessionreplay.internal.recorder.mapper
 
 import android.view.View
+import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.model.MobileSegment
 
@@ -16,9 +17,9 @@ internal class ViewScreenshotWireframeMapper(
     private val viewWireframeMapper: ViewWireframeMapper = ViewWireframeMapper()
 ) : BaseWireframeMapper<View, MobileSegment.Wireframe.ShapeWireframe>() {
 
-    override fun map(view: View, mappingContext: MappingContext):
+    override fun map(view: View, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe.ShapeWireframe> {
-        return viewWireframeMapper.map(view, mappingContext).map {
+        return viewWireframeMapper.map(view, mappingContext, delayedCallbackInfo).map {
             it.copy(border = MobileSegment.ShapeBorder("#000000ff", 1))
         }
     }

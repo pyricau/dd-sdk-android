@@ -22,10 +22,22 @@ enum com.datadog.android.sessionreplay.SessionReplayPrivacy
   - ALLOW_ALL
   - MASK_ALL
   - MASK_USER_INPUT
+class com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter
+  fun update()
+  fun add(com.datadog.android.sessionreplay.internal.recorder.SystemInformation): BlockingQueueItemAdapter?
+class com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter
+  fun setNodes(List<com.datadog.android.sessionreplay.internal.recorder.Node>)
+  fun getLoadingImages(): Int
+  fun incrementPendingImages()
+  fun decrementPendingImages()
+data class com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
+  constructor(SystemInformation, com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter, com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter, Node? = null, Node? = null, Int = 0)
 data class com.datadog.android.sessionreplay.internal.recorder.GlobalBounds
   constructor(Long, Long, Long, Long)
 data class com.datadog.android.sessionreplay.internal.recorder.MappingContext
   constructor(SystemInformation, Boolean = false)
+data class com.datadog.android.sessionreplay.internal.recorder.Node
+  constructor(List<com.datadog.android.sessionreplay.model.MobileSegment.Wireframe>, List<Node> = emptyList(), List<com.datadog.android.sessionreplay.model.MobileSegment.Wireframe> = emptyList())
 interface com.datadog.android.sessionreplay.internal.recorder.OptionSelectorDetector
   fun isOptionSelector(android.view.ViewGroup): Boolean
 data class com.datadog.android.sessionreplay.internal.recorder.SystemInformation
@@ -43,10 +55,10 @@ class com.datadog.android.sessionreplay.internal.recorder.mapper.MaskInputTextVi
   constructor()
 open class com.datadog.android.sessionreplay.internal.recorder.mapper.TextViewMapper : BaseWireframeMapper<android.widget.TextView, com.datadog.android.sessionreplay.model.MobileSegment.Wireframe.TextWireframe>
   constructor()
-  override fun map(android.widget.TextView, com.datadog.android.sessionreplay.internal.recorder.MappingContext): List<com.datadog.android.sessionreplay.model.MobileSegment.Wireframe.TextWireframe>
+  override fun map(android.widget.TextView, com.datadog.android.sessionreplay.internal.recorder.MappingContext, com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo?): List<com.datadog.android.sessionreplay.model.MobileSegment.Wireframe.TextWireframe>
   companion object 
 interface com.datadog.android.sessionreplay.internal.recorder.mapper.WireframeMapper<T: android.view.View, S: com.datadog.android.sessionreplay.model.MobileSegment.Wireframe>
-  fun map(T, com.datadog.android.sessionreplay.internal.recorder.MappingContext): List<S>
+  fun map(T, com.datadog.android.sessionreplay.internal.recorder.MappingContext, com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo?): List<S>
 object com.datadog.android.sessionreplay.utils.StringUtils
   fun formatColorAndAlphaAsHexa(Int, Int): String
 object com.datadog.android.sessionreplay.utils.UniqueIdentifierGenerator

@@ -26,7 +26,7 @@ internal abstract class CheckableTextViewMapper<T>(
 
     override fun resolveMainWireframes(view: T, mappingContext: MappingContext):
         List<MobileSegment.Wireframe> {
-        return textWireframeMapper.map(view, mappingContext)
+        return textWireframeMapper.map(view, mappingContext, null)
     }
 
     override fun resolveCheckedCheckable(view: T, mappingContext: MappingContext):

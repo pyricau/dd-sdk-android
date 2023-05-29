@@ -7,6 +7,7 @@
 package com.datadog.android.sessionreplay.internal.recorder.mapper
 
 import android.view.View
+import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.model.MobileSegment
 import com.datadog.android.sessionreplay.utils.UniqueIdentifierGenerator
@@ -17,9 +18,9 @@ internal class DecorViewMapper(
     private val uniqueIdentifierGenerator: UniqueIdentifierGenerator = UniqueIdentifierGenerator
 ) : BaseWireframeMapper<View, MobileSegment.Wireframe.ShapeWireframe>() {
 
-    override fun map(view: View, mappingContext: MappingContext):
+    override fun map(view: View, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe.ShapeWireframe> {
-        val wireframes = viewWireframeMapper.map(view, mappingContext).toMutableList()
+        val wireframes = viewWireframeMapper.map(view, mappingContext, delayedCallbackInfo).toMutableList()
         if (mappingContext.systemInformation.themeColor != null) {
             // we add the background color from the theme to the decorView
             addShapeStyleFromThemeIfNeeded(

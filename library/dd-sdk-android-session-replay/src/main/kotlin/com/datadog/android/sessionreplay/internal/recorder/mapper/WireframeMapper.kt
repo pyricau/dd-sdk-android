@@ -7,6 +7,7 @@
 package com.datadog.android.sessionreplay.internal.recorder.mapper
 
 import android.view.View
+import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.model.MobileSegment
@@ -16,6 +17,7 @@ import com.datadog.android.sessionreplay.model.MobileSegment
  * This is mainly used internally by the SDK but if you want to provide a different
  * Session Replay representation for a specific View type you can implement this on your end.
  */
+
 interface WireframeMapper<in T : View, out S : MobileSegment.Wireframe> {
 
     /**
@@ -26,5 +28,5 @@ interface WireframeMapper<in T : View, out S : MobileSegment.Wireframe> {
      * @see MobileSegment.Wireframe
      * @see SystemInformation
      */
-    fun map(view: T, mappingContext: MappingContext): List<S>
+    fun map(view: T, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?): List<S>
 }

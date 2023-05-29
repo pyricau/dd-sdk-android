@@ -33,7 +33,6 @@ internal class RecordedDataProcessor(
     private val mutationResolver: MutationResolver = MutationResolver(),
     private val nodeFlattener: NodeFlattener = NodeFlattener()
 ) : Processor {
-
     internal var prevRumContext: SessionReplayRumContext = SessionReplayRumContext()
     private var prevSnapshot: List<MobileSegment.Wireframe> = emptyList()
     private var lastSnapshotTimestamp = 0L
@@ -88,6 +87,7 @@ internal class RecordedDataProcessor(
         val wireframes = snapshots.flatMap { nodeFlattener.flattenNode(it) }
 
         if (wireframes.isEmpty()) {
+            println("yondbg wireframes was empty")
             // TODO: RUMM-2397 Add the proper logs here once the sdkLogger will be added
             return
         }
@@ -146,6 +146,7 @@ internal class RecordedDataProcessor(
         prevSnapshot = wireframes
         previousOrientation = systemInformation.screenOrientation
         if (records.isNotEmpty()) {
+            println("yondbg writer write $records")
             writer.write(bundleRecordInEnrichedRecord(newRumContext, records))
         }
     }

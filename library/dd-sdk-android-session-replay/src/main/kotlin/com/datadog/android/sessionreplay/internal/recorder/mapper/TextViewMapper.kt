@@ -9,6 +9,7 @@ package com.datadog.android.sessionreplay.internal.recorder.mapper
 import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.TextView
+import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.densityNormalized
 import com.datadog.android.sessionreplay.internal.recorder.obfuscator.rules.AllowAllObfuscationRule
@@ -35,7 +36,7 @@ open class TextViewMapper :
         this.textValueObfuscationRule = textValueObfuscationRule
     }
 
-    override fun map(view: TextView, mappingContext: MappingContext):
+    override fun map(view: TextView, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe.TextWireframe> {
         val viewGlobalBounds = resolveViewGlobalBounds(
             view,

@@ -105,6 +105,17 @@ internal class WireframeUtils {
         )
     }
 
+    private fun MobileSegment.Wireframe.ImageWireframe.bounds(): Bounds {
+        return Bounds(
+                left = x + (clip?.left ?: 0),
+                right = x + width - (clip?.right ?: 0),
+                top = y + (clip?.top ?: 0),
+                bottom = y + height - (clip?.bottom ?: 0),
+                width = width,
+                height = height
+        )
+    }
+
     internal data class Bounds(
         val left: Long,
         val right: Long,

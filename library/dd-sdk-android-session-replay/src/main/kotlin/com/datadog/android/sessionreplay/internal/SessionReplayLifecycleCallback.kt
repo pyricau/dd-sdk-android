@@ -11,6 +11,7 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import com.datadog.android.sessionreplay.SessionReplayPrivacy
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter
 import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
 import com.datadog.android.sessionreplay.internal.processor.RecordedDataProcessor
 import com.datadog.android.sessionreplay.internal.async.BlockingQueueItemEnricher
@@ -67,8 +68,9 @@ internal class SessionReplayLifecycleCallback(
     )
     private val blockingQueueItemEnricher = BlockingQueueItemEnricher(rumContextProvider, timeProvider, recordCallback)
     private val blockingQueueHandler = BlockingQueueHandler(processor, blockingQueueItemEnricher, blockingQueueHandlerExecutorService)
+    private val blockingQueueAdapter = BlockingQueueAdapter(blockingQueueHandler)
     internal var viewOnDrawInterceptor = ViewOnDrawInterceptor(
-        blockingQueueHandler,
+        blockingQueueAdapter,
         SnapshotProducer(
             TreeViewTraversal(customMappers + privacy.mappers()),
             ComposedOptionSelectorDetector(

@@ -10,6 +10,7 @@ import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 
+
 internal data class BlockingQueueItem(
         val timestamp: Long,
         val prevRumContext: SessionReplayRumContext,
@@ -17,5 +18,5 @@ internal data class BlockingQueueItem(
         val systemInformation: SystemInformation
         ) {
     var nodes = emptyList<Node>()
-    var loadingImages = 0
+    var pendingImages = 0
 }

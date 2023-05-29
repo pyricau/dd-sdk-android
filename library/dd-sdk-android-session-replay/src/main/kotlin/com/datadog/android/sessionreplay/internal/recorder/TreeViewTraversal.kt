@@ -23,7 +23,8 @@ internal class TreeViewTraversal(
     @Suppress("ReturnCount")
     fun traverse(
         view: View,
-        mappingContext: MappingContext
+        mappingContext: MappingContext,
+        delayedCallbackInfo: DelayedCallbackInfo,
     ): TraversedTreeView {
         if (viewUtilsInternal.isNotVisible(view) ||
             viewUtilsInternal.isSystemNoise(view)
@@ -39,13 +40,17 @@ internal class TreeViewTraversal(
 
         if (exhaustiveTypeMapper != null) {
             traversalStrategy = TraversalStrategy.STOP_AND_RETURN_NODE
-            resolvedWireframes = exhaustiveTypeMapper.map(view, mappingContext)
+            resolvedWireframes = exhaustiveTypeMapper.map(
+                    view,
+                    mappingContext,
+                    delayedCallbackInfo,
+            )
         } else if (isDecorView(view)) {
             traversalStrategy = TraversalStrategy.TRAVERSE_ALL_CHILDREN
-            resolvedWireframes = decorViewMapper.map(view, mappingContext)
+            resolvedWireframes = decorViewMapper.map(view, mappingContext, delayedCallbackInfo)
         } else {
             traversalStrategy = TraversalStrategy.TRAVERSE_ALL_CHILDREN
-            resolvedWireframes = viewMapper.map(view, mappingContext)
+            resolvedWireframes = viewMapper.map(view, mappingContext, delayedCallbackInfo)
         }
 
         return TraversedTreeView(resolvedWireframes, traversalStrategy)

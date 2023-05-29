@@ -8,7 +8,6 @@ package com.datadog.android.sessionreplay.internal.recorder
 
 import android.view.View
 import android.view.ViewGroup
-import com.datadog.android.sessionreplay.internal.async.BlockingQueueItem
 import com.datadog.android.sessionreplay.model.MobileSegment
 import java.util.LinkedList
 
@@ -21,9 +20,14 @@ internal class SnapshotProducer(
     fun produce(
         rootView: View,
         systemInformation: SystemInformation,
-        blockingQueueItem: BlockingQueueItem
+        delayedCallbackInfo: DelayedCallbackInfo,
     ): Node? {
-        return convertViewToNode(rootView, MappingContext(systemInformation), LinkedList(), blockingQueueItem)
+        return convertViewToNode(
+                rootView,
+                MappingContext(systemInformation),
+                LinkedList(),
+                delayedCallbackInfo,
+        )
     }
 
     @Suppress("ComplexMethod", "ReturnCount")
@@ -31,9 +35,24 @@ internal class SnapshotProducer(
         view: View,
         mappingContext: MappingContext,
         parents: LinkedList<MobileSegment.Wireframe>,
-        blockingQueueItem: BlockingQueueItem
+        delayedCallbackInfo: DelayedCallbackInfo,
     ): Node? {
-        val traversedTreeView = treeViewTraversal.traverse(view, mappingContext)
+
+        val currentNode = Node(
+                children = arrayListOf(),
+                wireframes = arrayListOf(),
+                parents = parents
+        )
+
+        if (delayedCallbackInfo.root == null) {
+            delayedCallbackInfo.root = currentNode
+        }
+
+        val traversedTreeView = treeViewTraversal.traverse(
+                view,
+                mappingContext,
+                delayedCallbackInfo,
+        )
         val nextTraversalStrategy = traversedTreeView.nextActionStrategy
         val resolvedWireframes = traversedTreeView.mappedWireframes
         if (nextTraversalStrategy == TreeViewTraversal.TraversalStrategy.STOP_AND_DROP_NODE) {
@@ -44,24 +63,32 @@ internal class SnapshotProducer(
         }
 
         val childNodes = LinkedList<Node>()
+
         if (view is ViewGroup &&
             view.childCount > 0 &&
             nextTraversalStrategy == TreeViewTraversal.TraversalStrategy.TRAVERSE_ALL_CHILDREN
         ) {
             val childMappingContext = resolveChildMappingContext(view, mappingContext)
             val parentsCopy = LinkedList(parents).apply { addAll(resolvedWireframes) }
-            for (i in 0 until view.childCount) {
-                val viewChild = view.getChildAt(i) ?: continue
-                convertViewToNode(viewChild, childMappingContext, parentsCopy, blockingQueueItem)?.let {
+            for (childIdx in 0 until view.childCount) {
+                val viewChild = view.getChildAt(childIdx) ?: continue
+                delayedCallbackInfo.current = currentNode
+
+                convertViewToNode(
+                        viewChild,
+                        childMappingContext,
+                        parentsCopy,
+                        delayedCallbackInfo,
+                )?.let {
                     childNodes.add(it)
                 }
             }
         }
-        return Node(
-            children = childNodes,
-            wireframes = resolvedWireframes,
-            parents = parents
-        )
+
+        currentNode.children = childNodes
+        currentNode.wireframes = resolvedWireframes
+
+        return currentNode
     }
 
     private fun resolveChildMappingContext(

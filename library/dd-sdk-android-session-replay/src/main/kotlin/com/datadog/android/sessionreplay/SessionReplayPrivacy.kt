@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.CheckedTextView
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.NumberPicker
 import android.widget.RadioButton
@@ -24,6 +25,7 @@ import com.datadog.android.sessionreplay.internal.recorder.mapper.ButtonMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.CheckBoxMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.CheckedTextViewMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.EditTextViewMapper
+import com.datadog.android.sessionreplay.internal.recorder.mapper.Base64WireframeMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MapperTypeWrapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MaskAllCheckBoxMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MaskAllCheckedTextViewMapper
@@ -75,7 +77,7 @@ enum class SessionReplayPrivacy {
 
     @Suppress("LongMethod")
     internal fun mappers(): List<MapperTypeWrapper> {
-        val viewWireframeMapper = ViewWireframeMapper()
+        val base64Mapper = Base64WireframeMapper()
         val unsupportedViewMapper = UnsupportedViewMapper()
         val imageMapper: ViewScreenshotWireframeMapper
         val textMapper: TextViewMapper
@@ -89,7 +91,6 @@ enum class SessionReplayPrivacy {
         val numberPickerMapper: BasePickerMapper?
         when (this) {
             ALLOW_ALL -> {
-                imageMapper = ViewScreenshotWireframeMapper(viewWireframeMapper)
                 textMapper = TextViewMapper()
                 buttonMapper = ButtonMapper(textMapper)
                 editTextViewMapper = EditTextViewMapper(textMapper)
@@ -101,7 +102,6 @@ enum class SessionReplayPrivacy {
                 numberPickerMapper = getNumberPickerMapper()
             }
             MASK_ALL -> {
-                imageMapper = ViewScreenshotWireframeMapper(viewWireframeMapper)
                 textMapper = MaskAllTextViewMapper()
                 buttonMapper = ButtonMapper(textMapper)
                 editTextViewMapper = EditTextViewMapper(textMapper)
@@ -113,7 +113,6 @@ enum class SessionReplayPrivacy {
                 numberPickerMapper = getMaskAllNumberPickerMapper()
             }
             MASK_USER_INPUT -> {
-                imageMapper = ViewScreenshotWireframeMapper(viewWireframeMapper)
                 textMapper = MaskInputTextViewMapper()
                 buttonMapper = ButtonMapper(textMapper)
                 editTextViewMapper = EditTextViewMapper(textMapper)
@@ -133,8 +132,10 @@ enum class SessionReplayPrivacy {
             MapperTypeWrapper(Button::class.java, buttonMapper.toGenericMapper()),
             MapperTypeWrapper(EditText::class.java, editTextViewMapper.toGenericMapper()),
             MapperTypeWrapper(TextView::class.java, textMapper.toGenericMapper()),
+            MapperTypeWrapper(ImageButton::class.java, base64Mapper.toGenericMapper()),
             MapperTypeWrapper(ImageView::class.java, imageMapper.toGenericMapper()),
-            MapperTypeWrapper(AppCompatToolbar::class.java, unsupportedViewMapper.toGenericMapper())
+            MapperTypeWrapper(AppCompatToolbar::class.java, unsupportedViewMapper.toGenericMapper()),
+            MapperTypeWrapper(ImageButton::class.java, base64Mapper.toGenericMapper())
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

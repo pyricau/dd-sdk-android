@@ -8,8 +8,8 @@ package com.datadog.android.sessionreplay.internal.recorder
 
 import com.datadog.android.sessionreplay.model.MobileSegment
 
-internal data class Node(
-    val wireframes: List<MobileSegment.Wireframe>,
-    val children: List<Node> = emptyList(),
-    val parents: List<MobileSegment.Wireframe> = emptyList()
+data class Node(
+    var wireframes: List<MobileSegment.Wireframe>,
+    var children: List<Node> = emptyList(),
+    var parents: List<MobileSegment.Wireframe> = emptyList()
 )
