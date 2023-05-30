@@ -8,10 +8,7 @@ package com.datadog.android.sessionreplay.internal.recorder.image
 
 import android.view.View
 import android.view.Window
-import android.widget.ImageView
-import com.datadog.android.sessionreplay.internal.recorder.GlobalBounds
-import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 
 internal interface BitmapCapture {
-    fun getBitmap(view: View, mappingContext: MappingContext, window: Window, listener: PixelCopyListener)
+    fun getBitmap(view: View, window: Window, listener: PixelCopyListener)
 }

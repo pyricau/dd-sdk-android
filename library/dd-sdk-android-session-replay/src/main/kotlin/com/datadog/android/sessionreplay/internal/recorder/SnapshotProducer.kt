@@ -44,10 +44,6 @@ internal class SnapshotProducer(
                 parents = parents
         )
 
-        if (delayedCallbackInfo.root == null) {
-            delayedCallbackInfo.root = currentNode
-        }
-
         val traversedTreeView = treeViewTraversal.traverse(
                 view,
                 mappingContext,
@@ -72,7 +68,6 @@ internal class SnapshotProducer(
             val parentsCopy = LinkedList(parents).apply { addAll(resolvedWireframes) }
             for (childIdx in 0 until view.childCount) {
                 val viewChild = view.getChildAt(childIdx) ?: continue
-                delayedCallbackInfo.current = currentNode
 
                 convertViewToNode(
                         viewChild,

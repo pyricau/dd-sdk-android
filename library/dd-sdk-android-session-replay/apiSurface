@@ -31,7 +31,7 @@ class com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter
   fun incrementPendingImages()
   fun decrementPendingImages()
 data class com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
-  constructor(SystemInformation, com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter, com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter, Node? = null, Node? = null, Int = 0)
+  constructor(com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter, com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter)
 data class com.datadog.android.sessionreplay.internal.recorder.GlobalBounds
   constructor(Long, Long, Long, Long)
 data class com.datadog.android.sessionreplay.internal.recorder.MappingContext

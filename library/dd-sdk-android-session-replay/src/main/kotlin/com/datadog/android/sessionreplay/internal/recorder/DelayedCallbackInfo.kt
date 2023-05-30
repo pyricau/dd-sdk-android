@@ -10,10 +10,6 @@ import com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter
 import com.datadog.android.sessionreplay.internal.async.BlockingQueueItemAdapter
 
 data class DelayedCallbackInfo (
-        var systemInformation: SystemInformation,
         var blockingQueueItem: BlockingQueueItemAdapter,
         var blockingQueueHandler: BlockingQueueAdapter,
-        var root: Node? = null,
-        var current: Node? = null,
-        var wireframeIndex: Int = 0,
         )

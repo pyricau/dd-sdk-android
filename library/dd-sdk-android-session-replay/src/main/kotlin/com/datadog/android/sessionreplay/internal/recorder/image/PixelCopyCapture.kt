@@ -15,24 +15,19 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import androidx.annotation.RequiresApi
-import com.datadog.android.sessionreplay.internal.recorder.MappingContext
+import com.datadog.android.sessionreplay.internal.recorder.GlobalBounds
 
-internal class PixelCopyCapture: BitmapCapture {
+internal class PixelCopyCapture(private val viewGlobalBounds: GlobalBounds): BitmapCapture {
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun getBitmap(view: View, mappingContext: MappingContext, window: Window, listener: PixelCopyListener) {
+    override fun getBitmap(view: View, window: Window, listener: PixelCopyListener) {
         val locationOnScreen = IntArray(2)
         view.getLocationInWindow(locationOnScreen)
 
-        val x = locationOnScreen[0]
-        val y = locationOnScreen[1]
-
-        println("yondbg getBitmap with x: $x and y: $y")
-
         val scope = Rect(
-                x,
-                y,
-                x + view.width,
-                y + view.height
+                locationOnScreen[0],
+                locationOnScreen[1],
+                (locationOnScreen[0] + view.width),
+                (locationOnScreen[1] + view.height)
         )
 
         val dstBitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)

@@ -45,7 +45,6 @@ internal class WindowsOnDrawListener(
         val systemInformation = miscUtils.resolveSystemInformation(ownerActivity)
         val blockingQueueItemAdapter = blockingQueueAdapter.add(systemInformation) ?: return@Runnable
         val delayedCallbackInfo = DelayedCallbackInfo(
-                systemInformation = systemInformation,
                 blockingQueueItem = blockingQueueItemAdapter,
                 blockingQueueHandler = blockingQueueAdapter
         )
