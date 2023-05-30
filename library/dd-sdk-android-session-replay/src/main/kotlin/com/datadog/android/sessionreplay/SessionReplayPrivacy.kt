@@ -19,6 +19,7 @@ import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toolbar
+import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import com.datadog.android.sessionreplay.internal.recorder.mapper.BasePickerMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.ButtonMapper
@@ -41,8 +42,6 @@ import com.datadog.android.sessionreplay.internal.recorder.mapper.SeekBarWirefra
 import com.datadog.android.sessionreplay.internal.recorder.mapper.SwitchCompatMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.TextViewMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.UnsupportedViewMapper
-import com.datadog.android.sessionreplay.internal.recorder.mapper.ViewScreenshotWireframeMapper
-import com.datadog.android.sessionreplay.internal.recorder.mapper.ViewWireframeMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.WireframeMapper
 import androidx.appcompat.widget.Toolbar as AppCompatToolbar
 
@@ -77,10 +76,8 @@ enum class SessionReplayPrivacy {
 
     @Suppress("LongMethod")
     internal fun mappers(): List<MapperTypeWrapper> {
-        val viewWireframeMapper = ViewWireframeMapper()
         val base64Mapper = Base64WireframeMapper()
         val unsupportedViewMapper = UnsupportedViewMapper()
-        val imageMapper = ViewScreenshotWireframeMapper(viewWireframeMapper)
         val textMapper: TextViewMapper
         val buttonMapper: ButtonMapper
         val editTextViewMapper: EditTextViewMapper
@@ -133,10 +130,8 @@ enum class SessionReplayPrivacy {
             MapperTypeWrapper(Button::class.java, buttonMapper.toGenericMapper()),
             MapperTypeWrapper(EditText::class.java, editTextViewMapper.toGenericMapper()),
             MapperTypeWrapper(TextView::class.java, textMapper.toGenericMapper()),
-            MapperTypeWrapper(ImageButton::class.java, base64Mapper.toGenericMapper()),
-            MapperTypeWrapper(ImageView::class.java, imageMapper.toGenericMapper()),
             MapperTypeWrapper(AppCompatToolbar::class.java, unsupportedViewMapper.toGenericMapper()),
-            MapperTypeWrapper(ImageButton::class.java, base64Mapper.toGenericMapper())
+            MapperTypeWrapper(ImageView::class.java, base64Mapper.toGenericMapper()),
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

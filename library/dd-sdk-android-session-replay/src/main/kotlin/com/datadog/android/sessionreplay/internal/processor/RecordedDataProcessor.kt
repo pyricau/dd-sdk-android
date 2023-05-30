@@ -87,7 +87,6 @@ internal class RecordedDataProcessor(
         val wireframes = snapshots.flatMap { nodeFlattener.flattenNode(it) }
 
         if (wireframes.isEmpty()) {
-            println("yondbg wireframes was empty")
             // TODO: RUMM-2397 Add the proper logs here once the sdkLogger will be added
             return
         }
@@ -146,7 +145,6 @@ internal class RecordedDataProcessor(
         prevSnapshot = wireframes
         previousOrientation = systemInformation.screenOrientation
         if (records.isNotEmpty()) {
-            println("yondbg writer write $records")
             writer.write(bundleRecordInEnrichedRecord(newRumContext, records))
         }
     }

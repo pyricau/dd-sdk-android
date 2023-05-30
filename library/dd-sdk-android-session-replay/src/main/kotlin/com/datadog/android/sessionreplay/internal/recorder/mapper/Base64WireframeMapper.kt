@@ -75,19 +75,22 @@ internal class Base64WireframeMapper :
     ): PixelCopyListener {
         return object : PixelCopyListener {
             override fun onCopySuccess(bitmap: Bitmap) {
-                val encodedBase64String = convert(bitmap)
+                try {
+                    val byteArrayOutputStream = compressBitmap(bitmap)
+                    if (isOverSizeLimit(byteArrayOutputStream.size())) return
+                    val bitmapAsBase64String = encodeBase64ToString(byteArrayOutputStream)
+                    val mimeType = getMimeType()
 
-                if (encodedBase64String.isEmpty()) {
+                    if (bitmapAsBase64String.isNotEmpty()) {
+                        base64Wireframe.base64 = bitmapAsBase64String
+                        base64Wireframe.mimeType = mimeType
+                        base64Wireframe.isEmpty = false
+                    }
+                } finally {
+                    bitmap.recycle()
                     delayedCallbackInfo.blockingQueueItem.decrementPendingImages()
-                    return
+                    delayedCallbackInfo.blockingQueueHandler.update()
                 }
-
-                base64Wireframe.base64 = encodedBase64String
-                base64Wireframe.mimeType = getMimeType()
-                base64Wireframe.isEmpty = false
-
-                delayedCallbackInfo.blockingQueueItem.decrementPendingImages()
-                delayedCallbackInfo.blockingQueueHandler.update()
             }
 
             override fun onCopyFailure(errorCode: Int) {
@@ -96,20 +99,12 @@ internal class Base64WireframeMapper :
         }
     }
 
-    private fun convert(bitmap: Bitmap): String {
+    private fun compressBitmap(bitmap: Bitmap): ByteArrayOutputStream {
         val byteArrayOutputStream = ByteArrayOutputStream()
-
+        val imageQuality = 75
         val imageFormat = getImageCompressionFormat()
-
-        bitmap.compress(imageFormat, 75, byteArrayOutputStream)
-        val bitmapSize  = bitmap.allocationByteCount
-        bitmap.recycle()
-
-        return if (isOverSizeLimit(bitmapSize)) {
-            ""
-        } else {
-            encodeBase64ToString(byteArrayOutputStream)
-        }
+        bitmap.compress(imageFormat, imageQuality, byteArrayOutputStream)
+        return byteArrayOutputStream
     }
 
     private fun encodeBase64ToString(byteArrayOutputStream: ByteArrayOutputStream): String {
@@ -126,7 +121,7 @@ internal class Base64WireframeMapper :
     }
 
     private fun getMimeType(): String? {
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension("png")
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension("webp")
     }
 
     private fun isOverSizeLimit(bitmapSize: Int): Boolean {
