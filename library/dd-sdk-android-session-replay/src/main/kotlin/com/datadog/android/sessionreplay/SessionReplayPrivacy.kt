@@ -77,9 +77,10 @@ enum class SessionReplayPrivacy {
 
     @Suppress("LongMethod")
     internal fun mappers(): List<MapperTypeWrapper> {
+        val viewWireframeMapper = ViewWireframeMapper()
         val base64Mapper = Base64WireframeMapper()
         val unsupportedViewMapper = UnsupportedViewMapper()
-        val imageMapper: ViewScreenshotWireframeMapper
+        val imageMapper = ViewScreenshotWireframeMapper(viewWireframeMapper)
         val textMapper: TextViewMapper
         val buttonMapper: ButtonMapper
         val editTextViewMapper: EditTextViewMapper
