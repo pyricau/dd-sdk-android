@@ -10,12 +10,13 @@ import android.view.View
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.ViewUtilsInternal
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.model.MobileSegment
 
 internal class UnsupportedViewMapper :
     BaseWireframeMapper<View, MobileSegment.Wireframe.TextWireframe>() {
 
-    override fun map(view: View, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
+    override fun map(view: View, mappingContext: MappingContext, bitmapSerializer: BitmapSerializer?, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe.TextWireframe> {
         val viewGlobalBounds = resolveViewGlobalBounds(
             view,

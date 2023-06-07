@@ -11,6 +11,7 @@ import android.widget.EditText
 import com.datadog.android.sessionreplay.SessionReplayPrivacy
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.model.MobileSegment
 import com.datadog.android.sessionreplay.utils.StringUtils
 import com.datadog.android.sessionreplay.utils.UniqueIdentifierGenerator
@@ -33,9 +34,9 @@ internal open class EditTextViewMapper(
     stringUtils = stringUtils
 ) {
 
-    override fun map(view: EditText, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
+    override fun map(view: EditText, mappingContext: MappingContext, bitmapSerializer: BitmapSerializer?, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe> {
-        val mainWireframeList = textViewMapper.map(view, mappingContext, delayedCallbackInfo)
+        val mainWireframeList = textViewMapper.map(view, mappingContext, bitmapSerializer, delayedCallbackInfo)
         resolveUnderlineWireframe(view, mappingContext.systemInformation.screenDensity)
             ?.let { wireframe ->
                 return mainWireframeList + wireframe

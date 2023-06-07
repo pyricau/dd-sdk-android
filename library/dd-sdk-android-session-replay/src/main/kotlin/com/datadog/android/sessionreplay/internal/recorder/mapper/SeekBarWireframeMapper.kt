@@ -14,6 +14,7 @@ import androidx.annotation.RequiresApi
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.densityNormalized
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.model.MobileSegment
 import com.datadog.android.sessionreplay.utils.StringUtils
 import com.datadog.android.sessionreplay.utils.UniqueIdentifierGenerator
@@ -28,7 +29,7 @@ internal open class SeekBarWireframeMapper(
 ) : BaseWireframeMapper<SeekBar, MobileSegment.Wireframe>(stringUtils, viewUtils) {
 
     @Suppress("LongMethod")
-    override fun map(view: SeekBar, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?):
+    override fun map(view: SeekBar, mappingContext: MappingContext, bitmapSerializer: BitmapSerializer?, delayedCallbackInfo: DelayedCallbackInfo?):
         List<MobileSegment.Wireframe> {
         val activeTrackId = uniqueIdentifierGenerator
             .resolveChildUniqueIdentifier(view, TRACK_ACTIVE_KEY_NAME)

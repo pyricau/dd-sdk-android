@@ -7,6 +7,7 @@
 package com.datadog.android.sessionreplay.internal.recorder
 
 import android.view.View
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.internal.recorder.mapper.DecorViewMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MapperTypeWrapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.ViewWireframeMapper
@@ -22,9 +23,10 @@ internal class TreeViewTraversal(
 
     @Suppress("ReturnCount")
     fun traverse(
-        view: View,
-        mappingContext: MappingContext,
-        delayedCallbackInfo: DelayedCallbackInfo,
+            view: View,
+            mappingContext: MappingContext,
+            bitmapSerializer: BitmapSerializer,
+            delayedCallbackInfo: DelayedCallbackInfo,
     ): TraversedTreeView {
         if (viewUtilsInternal.isNotVisible(view) ||
             viewUtilsInternal.isSystemNoise(view)
@@ -43,14 +45,15 @@ internal class TreeViewTraversal(
             resolvedWireframes = exhaustiveTypeMapper.map(
                     view,
                     mappingContext,
+                    bitmapSerializer,
                     delayedCallbackInfo,
             )
         } else if (isDecorView(view)) {
             traversalStrategy = TraversalStrategy.TRAVERSE_ALL_CHILDREN
-            resolvedWireframes = decorViewMapper.map(view, mappingContext, delayedCallbackInfo)
+            resolvedWireframes = decorViewMapper.map(view, mappingContext, bitmapSerializer, delayedCallbackInfo)
         } else {
             traversalStrategy = TraversalStrategy.TRAVERSE_ALL_CHILDREN
-            resolvedWireframes = viewMapper.map(view, mappingContext, delayedCallbackInfo)
+            resolvedWireframes = viewMapper.map(view, mappingContext, bitmapSerializer, delayedCallbackInfo)
         }
 
         return TraversedTreeView(resolvedWireframes, traversalStrategy)

@@ -10,6 +10,7 @@ import android.widget.TextView
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.internal.recorder.mapper.TextViewMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.WireframeMapper
 import com.datadog.android.sessionreplay.material.internal.densityNormalized
@@ -28,9 +29,10 @@ internal open class TabWireframeMapper(
 ) : WireframeMapper<TabLayout.TabView, MobileSegment.Wireframe> {
 
     override fun map(
-        view: TabView,
-        mappingContext: MappingContext,
-        delayedCallbackInfo: DelayedCallbackInfo?
+            view: TabView,
+            mappingContext: MappingContext,
+            bitmapSerializer: BitmapSerializer?,
+            delayedCallbackInfo: DelayedCallbackInfo?
     ): List<MobileSegment.Wireframe> {
         val labelWireframes = findAndResolveLabelWireframes(view, mappingContext)
         if (view.isSelected) {
@@ -85,7 +87,7 @@ internal open class TabWireframeMapper(
         for (i in 0 until view.childCount) {
             val viewChild = view.getChildAt(i) ?: continue
             if (TextView::class.java.isAssignableFrom(viewChild::class.java)) {
-                return textViewMapper.map(viewChild as TextView, mappingContext, null)
+                return textViewMapper.map(viewChild as TextView, mappingContext, null, null)
             }
         }
         return emptyList()

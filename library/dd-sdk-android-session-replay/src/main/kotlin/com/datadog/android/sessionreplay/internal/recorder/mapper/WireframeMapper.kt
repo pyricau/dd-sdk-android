@@ -10,6 +10,7 @@ import android.view.View
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.MappingContext
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.model.MobileSegment
 
 /**
@@ -28,5 +29,5 @@ interface WireframeMapper<in T : View, out S : MobileSegment.Wireframe> {
      * @see MobileSegment.Wireframe
      * @see SystemInformation
      */
-    fun map(view: T, mappingContext: MappingContext, delayedCallbackInfo: DelayedCallbackInfo?): List<S>
+    fun map(view: T, mappingContext: MappingContext, bitmapSerializer: BitmapSerializer?, delayedCallbackInfo: DelayedCallbackInfo?): List<S>
 }

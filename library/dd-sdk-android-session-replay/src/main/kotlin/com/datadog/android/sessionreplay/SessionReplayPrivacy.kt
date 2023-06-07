@@ -12,21 +12,17 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.CheckedTextView
 import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.NumberPicker
 import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toolbar
-import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.SwitchCompat
 import com.datadog.android.sessionreplay.internal.recorder.mapper.BasePickerMapper
-import com.datadog.android.sessionreplay.internal.recorder.mapper.ButtonMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.CheckBoxMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.CheckedTextViewMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.EditTextViewMapper
-import com.datadog.android.sessionreplay.internal.recorder.mapper.Base64WireframeMapper
+import com.datadog.android.sessionreplay.internal.recorder.mapper.ButtonMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MapperTypeWrapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MaskAllCheckBoxMapper
 import com.datadog.android.sessionreplay.internal.recorder.mapper.MaskAllCheckedTextViewMapper
@@ -76,7 +72,6 @@ enum class SessionReplayPrivacy {
 
     @Suppress("LongMethod")
     internal fun mappers(): List<MapperTypeWrapper> {
-        val base64Mapper = Base64WireframeMapper()
         val unsupportedViewMapper = UnsupportedViewMapper()
         val textMapper: TextViewMapper
         val buttonMapper: ButtonMapper
@@ -131,7 +126,6 @@ enum class SessionReplayPrivacy {
             MapperTypeWrapper(EditText::class.java, editTextViewMapper.toGenericMapper()),
             MapperTypeWrapper(TextView::class.java, textMapper.toGenericMapper()),
             MapperTypeWrapper(AppCompatToolbar::class.java, unsupportedViewMapper.toGenericMapper()),
-            MapperTypeWrapper(ImageView::class.java, base64Mapper.toGenericMapper()),
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

@@ -13,6 +13,7 @@ import com.datadog.android.sessionreplay.internal.async.BlockingQueueAdapter
 import com.datadog.android.sessionreplay.internal.recorder.Debouncer
 import com.datadog.android.sessionreplay.internal.recorder.DelayedCallbackInfo
 import com.datadog.android.sessionreplay.internal.recorder.SnapshotProducer
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.internal.utils.MiscUtils
 import java.lang.ref.WeakReference
 
@@ -48,10 +49,11 @@ internal class WindowsOnDrawListener(
                 blockingQueueItem = blockingQueueItemAdapter,
                 blockingQueueHandler = blockingQueueAdapter
         )
+        val bitmapSerializer = BitmapSerializer()
         val nodes = weakReferencedDecorViews
             .mapNotNull { it.get() }
             .mapNotNull {
-                snapshotProducer.produce(it, systemInformation, delayedCallbackInfo)
+                snapshotProducer.produce(it, systemInformation, bitmapSerializer, delayedCallbackInfo)
             }
 
         blockingQueueItemAdapter.setNodes(nodes)

@@ -29,7 +29,7 @@ internal open class SwitchCompatMapper(
         view: SwitchCompat,
         mappingContext: MappingContext
     ): List<MobileSegment.Wireframe> {
-        return textWireframeMapper.map(view, mappingContext, null)
+        return textWireframeMapper.map(view, mappingContext, null, null)
     }
 
     @Suppress("ReturnCount")

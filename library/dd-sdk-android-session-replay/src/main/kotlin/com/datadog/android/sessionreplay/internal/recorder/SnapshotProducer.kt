@@ -8,6 +8,7 @@ package com.datadog.android.sessionreplay.internal.recorder
 
 import android.view.View
 import android.view.ViewGroup
+import com.datadog.android.sessionreplay.internal.recorder.image.BitmapSerializer
 import com.datadog.android.sessionreplay.model.MobileSegment
 import java.util.LinkedList
 
@@ -18,24 +19,27 @@ internal class SnapshotProducer(
 ) {
 
     fun produce(
-        rootView: View,
-        systemInformation: SystemInformation,
-        delayedCallbackInfo: DelayedCallbackInfo,
+            rootView: View,
+            systemInformation: SystemInformation,
+            bitmapSerializer: BitmapSerializer,
+            delayedCallbackInfo: DelayedCallbackInfo,
     ): Node? {
         return convertViewToNode(
                 rootView,
                 MappingContext(systemInformation),
                 LinkedList(),
+                bitmapSerializer,
                 delayedCallbackInfo,
         )
     }
 
     @Suppress("ComplexMethod", "ReturnCount")
     private fun convertViewToNode(
-        view: View,
-        mappingContext: MappingContext,
-        parents: LinkedList<MobileSegment.Wireframe>,
-        delayedCallbackInfo: DelayedCallbackInfo,
+            view: View,
+            mappingContext: MappingContext,
+            parents: LinkedList<MobileSegment.Wireframe>,
+            bitmapSerializer: BitmapSerializer,
+            delayedCallbackInfo: DelayedCallbackInfo,
     ): Node? {
 
         val currentNode = Node(
@@ -47,6 +51,7 @@ internal class SnapshotProducer(
         val traversedTreeView = treeViewTraversal.traverse(
                 view,
                 mappingContext,
+                bitmapSerializer,
                 delayedCallbackInfo,
         )
         val nextTraversalStrategy = traversedTreeView.nextActionStrategy
@@ -73,6 +78,7 @@ internal class SnapshotProducer(
                         viewChild,
                         childMappingContext,
                         parentsCopy,
+                        bitmapSerializer,
                         delayedCallbackInfo,
                 )?.let {
                     childNodes.add(it)
