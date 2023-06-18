@@ -12,7 +12,8 @@ import android.content.res.Resources
 import android.content.res.Resources.Theme
 import android.view.View
 import com.datadog.android.sessionreplay.forge.ForgeConfigurator
-import com.datadog.android.sessionreplay.internal.processor.Processor
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueItem
 import com.datadog.android.sessionreplay.internal.recorder.Debouncer
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SnapshotProducer
@@ -20,6 +21,7 @@ import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.MiscUtils
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
@@ -28,6 +30,7 @@ import fr.xgouchet.elmyr.annotation.Forgery
 import fr.xgouchet.elmyr.annotation.IntForgery
 import fr.xgouchet.elmyr.junit5.ForgeConfiguration
 import fr.xgouchet.elmyr.junit5.ForgeExtension
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -56,7 +59,7 @@ internal class WindowsOnDrawListenerTest {
     lateinit var mockSnapshotProducer: SnapshotProducer
 
     @Mock
-    lateinit var mockProcessor: Processor
+    lateinit var mockBlockingQueueHandler: BlockingQueueHandler
 
     @Mock
     lateinit var mockDebouncer: Debouncer
@@ -79,6 +82,9 @@ internal class WindowsOnDrawListenerTest {
 
     @Forgery
     lateinit var fakeSystemInformation: SystemInformation
+
+    @Forgery
+    lateinit var fakeBlockingQueueItem: BlockingQueueItem
 
     @Mock
     lateinit var mockContext: Context
@@ -110,7 +116,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener = WindowsOnDrawListener(
             mockContext,
             fakeMockedDecorViews,
-            mockProcessor,
+            mockBlockingQueueHandler,
             mockSnapshotProducer,
             mockDebouncer,
             mockMiscUtils
@@ -118,18 +124,34 @@ internal class WindowsOnDrawListenerTest {
     }
 
     @Test
-    fun `M take and process snapshot W onDraw()`() {
+    fun `M take and add to blockingQueue W onDraw()`() {
         // Given
         stubDebouncer()
+
+        whenever(mockBlockingQueueHandler.add(any()))
+            .thenReturn(fakeBlockingQueueItem)
 
         // When
         testedListener.onDraw()
 
         // Then
-        verify(mockProcessor).processScreenSnapshots(
-            fakeWindowsSnapshots,
-            fakeSystemInformation
-        )
+        verify(mockBlockingQueueHandler).add(fakeSystemInformation)
+    }
+
+    @Test
+    fun `M update blockingQueue with correct nodes W onDraw()`() {
+        // Given
+        stubDebouncer()
+
+        whenever(mockBlockingQueueHandler.add(any()))
+            .thenReturn(fakeBlockingQueueItem)
+
+        // When
+        testedListener.onDraw()
+
+        // Then
+        assertThat(fakeBlockingQueueItem.nodes).isEqualTo(fakeWindowsSnapshots)
+        verify(mockBlockingQueueHandler).update()
     }
 
     @Test
@@ -139,7 +161,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener = WindowsOnDrawListener(
             mockContext,
             emptyList(),
-            mockProcessor,
+            mockBlockingQueueHandler,
             mockSnapshotProducer,
             mockDebouncer
         )
@@ -148,7 +170,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener.onDraw()
 
         // Then
-        verifyZeroInteractions(mockProcessor)
+        verifyZeroInteractions(mockBlockingQueueHandler)
         verifyZeroInteractions(mockSnapshotProducer)
     }
 
@@ -162,8 +184,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener.onDraw()
 
         // Then
-        verifyZeroInteractions(mockProcessor)
-        verifyZeroInteractions(mockSnapshotProducer)
+        verify(mockBlockingQueueHandler, never()).update()
     }
 
     // region Internal

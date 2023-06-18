@@ -35,23 +35,23 @@ internal class RecordedDataProcessor(
     private var lastSnapshotTimestamp = 0L
     private var previousOrientation = Configuration.ORIENTATION_UNDEFINED
 
-    @MainThread
+    @WorkerThread
     override fun processScreenSnapshots(
         nodes: List<Node>,
-        systemInformation: SystemInformation
+        systemInformation: SystemInformation,
+        prevContext: SessionReplayRumContext,
+        newContext: SessionReplayRumContext,
+        timestamp: Long
     ) {
-        buildRunnable { timestamp, newContext, currentContext ->
-            Runnable {
-                @Suppress("ThreadSafety") // this runs inside an executor
-                handleSnapshots(
-                    newContext,
-                    currentContext,
-                    timestamp,
-                    nodes,
-                    systemInformation
-                )
-            }
-        }?.let { executeRunnable(it) }
+        updateViewSent(newContext)
+
+        handleSnapshots(
+            newContext,
+            prevContext,
+            timestamp,
+            nodes,
+            systemInformation
+        )
     }
 
     @MainThread
@@ -187,6 +187,16 @@ internal class RecordedDataProcessor(
     ): Runnable? {
         val rumContextData = rumContextDataHandler.createRumContextData() ?: return null
 
+        updateViewSent(rumContextData.newRumContext)
+
+        return runnableFactory(
+            rumContextData.timestamp,
+            rumContextData.newRumContext,
+            rumContextData.prevRumContext
+        )
+    }
+
+    private fun updateViewSent(rumContext: SessionReplayRumContext) {
         // Because the runnable will be executed in another thread it can happen in case there is
         // an exception in the chain that the record cannot be sent. In this case we will have
         // a RUM view with `has_replay:true` but with no actual records. This is a corner case
@@ -197,13 +207,7 @@ internal class RecordedDataProcessor(
         // completely differently. In any case have in mind that after a discussion with the
         // browser team it appears that this situation may arrive also on their end and was
         // accepted.
-        recordCallback.onRecordForViewSent(rumContextData.newRumContext.viewId)
-
-        return runnableFactory(
-            rumContextData.timestamp,
-            rumContextData.newRumContext,
-            rumContextData.prevRumContext
-        )
+        recordCallback.onRecordForViewSent(rumContext.viewId)
     }
 
     private fun bundleRecordInEnrichedRecord(
