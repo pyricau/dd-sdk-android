@@ -12,8 +12,8 @@ import android.content.res.Resources
 import android.content.res.Resources.Theme
 import android.view.View
 import com.datadog.android.sessionreplay.forge.ForgeConfigurator
-import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
-import com.datadog.android.sessionreplay.internal.async.SnapshotBlockingQueueItem
+import com.datadog.android.sessionreplay.internal.async.RecordedDataQueueHandler
+import com.datadog.android.sessionreplay.internal.async.SnapshotRecordedDataQueueItem
 import com.datadog.android.sessionreplay.internal.recorder.Debouncer
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SnapshotProducer
@@ -59,7 +59,7 @@ internal class WindowsOnDrawListenerTest {
     lateinit var mockSnapshotProducer: SnapshotProducer
 
     @Mock
-    lateinit var mockBlockingQueueHandler: BlockingQueueHandler
+    lateinit var mockRecordedDataQueueHandler: RecordedDataQueueHandler
 
     @Mock
     lateinit var mockDebouncer: Debouncer
@@ -84,7 +84,7 @@ internal class WindowsOnDrawListenerTest {
     lateinit var fakeSystemInformation: SystemInformation
 
     @Forgery
-    lateinit var fakeBlockingQueueItem: SnapshotBlockingQueueItem
+    lateinit var fakeSnapshotQueueItem: SnapshotRecordedDataQueueItem
 
     @Mock
     lateinit var mockContext: Context
@@ -116,7 +116,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener = WindowsOnDrawListener(
             mockContext,
             fakeMockedDecorViews,
-            mockBlockingQueueHandler,
+            mockRecordedDataQueueHandler,
             mockSnapshotProducer,
             mockDebouncer,
             mockMiscUtils
@@ -124,34 +124,34 @@ internal class WindowsOnDrawListenerTest {
     }
 
     @Test
-    fun `M take and add to blockingQueue W onDraw()`() {
+    fun `M take and add to queue W onDraw()`() {
         // Given
         stubDebouncer()
 
-        whenever(mockBlockingQueueHandler.addSnapshotBlockingQueueItem(any<SystemInformation>()))
-            .thenReturn(fakeBlockingQueueItem)
+        whenever(mockRecordedDataQueueHandler.addSnapshotItem(any<SystemInformation>()))
+            .thenReturn(fakeSnapshotQueueItem)
 
         // When
         testedListener.onDraw()
 
         // Then
-        verify(mockBlockingQueueHandler).addSnapshotBlockingQueueItem(fakeSystemInformation)
+        verify(mockRecordedDataQueueHandler).addSnapshotItem(fakeSystemInformation)
     }
 
     @Test
-    fun `M update blockingQueue with correct nodes W onDraw()`() {
+    fun `M update queue with correct nodes W onDraw()`() {
         // Given
         stubDebouncer()
 
-        whenever(mockBlockingQueueHandler.addSnapshotBlockingQueueItem(any<SystemInformation>()))
-            .thenReturn(fakeBlockingQueueItem)
+        whenever(mockRecordedDataQueueHandler.addSnapshotItem(any<SystemInformation>()))
+            .thenReturn(fakeSnapshotQueueItem)
 
         // When
         testedListener.onDraw()
 
         // Then
-        assertThat(fakeBlockingQueueItem.nodes).isEqualTo(fakeWindowsSnapshots)
-        verify(mockBlockingQueueHandler).tryToConsumeItems()
+        assertThat(fakeSnapshotQueueItem.nodes).isEqualTo(fakeWindowsSnapshots)
+        verify(mockRecordedDataQueueHandler).tryToConsumeItems()
     }
 
     @Test
@@ -161,7 +161,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener = WindowsOnDrawListener(
             mockContext,
             emptyList(),
-            mockBlockingQueueHandler,
+            mockRecordedDataQueueHandler,
             mockSnapshotProducer,
             mockDebouncer
         )
@@ -170,7 +170,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener.onDraw()
 
         // Then
-        verifyZeroInteractions(mockBlockingQueueHandler)
+        verifyZeroInteractions(mockRecordedDataQueueHandler)
         verifyZeroInteractions(mockSnapshotProducer)
     }
 
@@ -184,7 +184,7 @@ internal class WindowsOnDrawListenerTest {
         testedListener.onDraw()
 
         // Then
-        verify(mockBlockingQueueHandler, never()).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler, never()).tryToConsumeItems()
     }
 
     // region Internal

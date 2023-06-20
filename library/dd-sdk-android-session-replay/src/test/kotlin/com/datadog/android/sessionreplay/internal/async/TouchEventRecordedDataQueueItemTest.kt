@@ -25,16 +25,16 @@ import org.mockito.quality.Strictness
 )
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ForgeConfiguration(ForgeConfigurator::class)
-internal class TouchEventBlockingQueueItemTest {
+internal class TouchEventRecordedDataQueueItemTest {
 
     @Forgery
-    lateinit var fakeTouchEventBlockingQueueItem: TouchEventBlockingQueueItem
+    lateinit var fakeTouchEventRecordedDataQueueItem: TouchEventRecordedDataQueueItem
 
-    lateinit var testedItem: TouchEventBlockingQueueItem
+    lateinit var testedItem: TouchEventRecordedDataQueueItem
 
     @BeforeEach
     fun `set up`() {
-        testedItem = fakeTouchEventBlockingQueueItem
+        testedItem = fakeTouchEventRecordedDataQueueItem
     }
 
     @Test

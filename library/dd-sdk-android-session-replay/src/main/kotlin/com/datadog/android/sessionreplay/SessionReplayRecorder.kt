@@ -17,7 +17,7 @@ import com.datadog.android.sessionreplay.internal.NoOpRecordCallback
 import com.datadog.android.sessionreplay.internal.RecordCallback
 import com.datadog.android.sessionreplay.internal.RecordWriter
 import com.datadog.android.sessionreplay.internal.SessionReplayLifecycleCallback
-import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
+import com.datadog.android.sessionreplay.internal.async.RecordedDataQueueHandler
 import com.datadog.android.sessionreplay.internal.processor.RecordedDataProcessor
 import com.datadog.android.sessionreplay.internal.processor.RumContextDataHandler
 import com.datadog.android.sessionreplay.internal.recorder.ComposedOptionSelectorDetector
@@ -49,12 +49,12 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
     private val windowInspector: WindowInspector
     private val windowCallbackInterceptor: WindowCallbackInterceptor
     private val sessionReplayLifecycleCallback: LifecycleCallback
-    private val blockingQueueHandler: BlockingQueueHandler
+    private val recordedDataQueueHandler: RecordedDataQueueHandler
     private val viewOnDrawInterceptor: ViewOnDrawInterceptor
     private val uiHandler: Handler
 
     // TODO: change to LoggingThreadPoolExecutor once V2 is merged
-    private val blockingQueueExecutorService = ThreadPoolExecutor(
+    private val recordedDataQueueExecutorService = ThreadPoolExecutor(
         CORE_DEFAULT_POOL_SIZE,
         CORE_DEFAULT_POOL_SIZE,
         THREAD_POOL_MAX_KEEP_ALIVE_MS,
@@ -94,14 +94,14 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
         this.customMappers = customMappers
         this.customOptionSelectorDetectors = customOptionSelectorDetectors
         this.windowInspector = windowInspector
-        this.blockingQueueHandler = BlockingQueueHandler(
-            executorService = blockingQueueExecutorService,
+        this.recordedDataQueueHandler = RecordedDataQueueHandler(
+            executorService = recordedDataQueueExecutorService,
             processor = processor,
             rumContextDataHandler = rumContextDataHandler,
             timeProvider = timeProvider
         )
         this.viewOnDrawInterceptor = ViewOnDrawInterceptor(
-            blockingQueueHandler = blockingQueueHandler,
+            recordedDataQueueHandler = recordedDataQueueHandler,
             SnapshotProducer(
                 TreeViewTraversal(customMappers + privacy.mappers()),
                 ComposedOptionSelectorDetector(
@@ -110,7 +110,7 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
             )
         )
         this.windowCallbackInterceptor = WindowCallbackInterceptor(
-            blockingQueueHandler,
+            recordedDataQueueHandler,
             viewOnDrawInterceptor,
             timeProvider
         )
@@ -132,7 +132,7 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
         windowCallbackInterceptor: WindowCallbackInterceptor,
         sessionReplayLifecycleCallback: LifecycleCallback,
         viewOnDrawInterceptor: ViewOnDrawInterceptor,
-        blockingQueueHandler: BlockingQueueHandler,
+        recordedDataQueueHandler: RecordedDataQueueHandler,
         uiHandler: Handler
     ) {
         this.appContext = appContext
@@ -144,7 +144,7 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
         this.customMappers = customMappers
         this.customOptionSelectorDetectors = customOptionSelectorDetectors
         this.windowInspector = windowInspector
-        this.blockingQueueHandler = blockingQueueHandler
+        this.recordedDataQueueHandler = recordedDataQueueHandler
         this.viewOnDrawInterceptor = viewOnDrawInterceptor
         this.windowCallbackInterceptor = windowCallbackInterceptor
         this.sessionReplayLifecycleCallback = sessionReplayLifecycleCallback

@@ -8,7 +8,7 @@ package com.datadog.android.sessionreplay.internal.async
 
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 
-internal abstract class BlockingQueueItem(
+internal abstract class RecordedDataQueueItem(
     internal val timestamp: Long,
     internal val prevRumContext: SessionReplayRumContext,
     internal val newRumContext: SessionReplayRumContext

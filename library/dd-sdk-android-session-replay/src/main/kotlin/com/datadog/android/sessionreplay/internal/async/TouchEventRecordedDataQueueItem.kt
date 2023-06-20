@@ -9,11 +9,11 @@ package com.datadog.android.sessionreplay.internal.async
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 import com.datadog.android.sessionreplay.model.MobileSegment
 
-internal class TouchEventBlockingQueueItem(
+internal class TouchEventRecordedDataQueueItem(
     timestamp: Long,
     prevRumContext: SessionReplayRumContext,
     newRumContext: SessionReplayRumContext
-) : BlockingQueueItem(timestamp, prevRumContext, newRumContext) {
+) : RecordedDataQueueItem(timestamp, prevRumContext, newRumContext) {
     internal var touchData = emptyList<MobileSegment.MobileRecord>()
 
     override fun isValid(): Boolean {

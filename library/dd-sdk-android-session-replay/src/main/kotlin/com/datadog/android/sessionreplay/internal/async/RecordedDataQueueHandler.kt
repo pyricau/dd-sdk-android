@@ -20,70 +20,81 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.RejectedExecutionException
 
 /**
- * This class is responsible for storing the [BlockingQueueItem]s in a queue and processing them.
- * These items are added to the queue from the main thread and processed on a background thread
+ * Responsible for storing the Snapshot and Interaction events in a queue.
+ * Allows for asynchronous enrichment, which still preserving the event order.
+ * The items are added to the queue from the main thread and processed on a background thread.
  */
-internal class BlockingQueueHandler(
+internal class RecordedDataQueueHandler(
     private val processor: RecordedDataProcessor,
     private val rumContextDataHandler: RumContextDataHandler,
     private val executorService: ExecutorService,
     private val timeProvider: TimeProvider
 ) {
+
     // region internal
-
-    internal var workQueue = ConcurrentLinkedQueue<BlockingQueueItem>()
+    internal var recordedDataQueue = ConcurrentLinkedQueue<RecordedDataQueueItem>()
 
     @MainThread
-    internal fun addTouchEventBlockingQueueItem(
+    internal fun addTouchEventItem(
         pointerInteractions: List<MobileSegment.MobileRecord>
-    ): TouchEventBlockingQueueItem? {
-
+    ): TouchEventRecordedDataQueueItem? {
         val rumContextData = rumContextDataHandler.createRumContextData()
             ?: return null
 
-        val blockingQueueItem = TouchEventBlockingQueueItem(
+        val item = TouchEventRecordedDataQueueItem(
             timestamp = rumContextData.timestamp,
             prevRumContext = rumContextData.prevRumContext,
             newRumContext = rumContextData.newRumContext
         )
 
-        blockingQueueItem.touchData = pointerInteractions
+        item.touchData = pointerInteractions
 
-        insertIntoWorkQueue(blockingQueueItem)
+        insertIntoRecordedDataQueue(item)
 
-        return blockingQueueItem
+        return item
     }
 
     @MainThread
-    internal fun addSnapshotBlockingQueueItem(
+    internal fun addSnapshotItem(
         systemInformation: SystemInformation?
-    ): SnapshotBlockingQueueItem? {
-
+    ): SnapshotRecordedDataQueueItem? {
         val rumContextData = rumContextDataHandler.createRumContextData()
             ?: return null
 
-        val blockingQueueItem = SnapshotBlockingQueueItem(
+        val item = SnapshotRecordedDataQueueItem(
             timestamp = rumContextData.timestamp,
             prevRumContext = rumContextData.prevRumContext,
             newRumContext = rumContextData.newRumContext
         )
 
-        blockingQueueItem.systemInformation = systemInformation
+        item.systemInformation = systemInformation
 
-        insertIntoWorkQueue(blockingQueueItem)
+        insertIntoRecordedDataQueue(item)
 
-        return blockingQueueItem
+        return item
     }
 
+    /**
+     * Goes through the queue one item at a time for as long as there are items in the queue.
+     * If an item is ready to be consumed, it is processed.
+     * If an invalid item is encountered, it is removed (invalid items are possible
+     * for example if a snapshot failed to traverse the tree).
+     * If neither of the previous conditions occurs, the loop breaks.
+     */
     @MainThread
     internal fun tryToConsumeItems() {
+        // no need to create a thread if the queue is empty
+        if (recordedDataQueue.isEmpty()) {
+            return
+        }
+
         // currentTime needs to be obtained on the uithread
         val currentTime = timeProvider.getDeviceTimestamp()
 
         @Suppress("SwallowedException", "TooGenericExceptionCaught")
         try {
             executorService.execute {
-                wakeUpProcessor(currentTime)
+                triggerProcessingLoop(currentTime)
             }
         } catch (e: RejectedExecutionException) {
             // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
@@ -93,74 +104,59 @@ internal class BlockingQueueHandler(
         }
     }
 
-    // end region
-
-    // region private
-
     @WorkerThread
-    @Synchronized
-    private fun wakeUpProcessor(currentTime: Long) {
-        while (workQueue.isNotEmpty()) {
-            val blockingQueueItem = workQueue.peek()
+    private fun triggerProcessingLoop(currentTime: Long) {
+        while (recordedDataQueue.isNotEmpty()) {
+            val nextItem = recordedDataQueue.peek()
 
-            if (blockingQueueItem != null &&
-                (
-                    !shouldRemoveItem(blockingQueueItem, currentTime) &&
-                        blockingQueueItem.isReady()
-                    )
-            ) {
-                workQueue.poll()
-
-                when (blockingQueueItem) {
-                    is SnapshotBlockingQueueItem ->
-                        processSnapshotEvent(blockingQueueItem)
-                    is TouchEventBlockingQueueItem ->
-                        processTouchEvent(blockingQueueItem)
+            if (nextItem != null) {
+                if (shouldRemoveItem(nextItem, currentTime)) {
+                    recordedDataQueue.poll()
+                } else if (nextItem.isReady()) {
+                    processItem()
+                } else {
+                    break
                 }
-            } else if (shouldRemoveItem(blockingQueueItem, currentTime)) {
-                workQueue.poll()
-            } else if (blockingQueueItem != null && !blockingQueueItem.isReady()) {
-                break
             }
         }
     }
 
-    private fun processSnapshotEvent(blockingQueueItem: SnapshotBlockingQueueItem) {
+    private fun processItem() {
+        when (val item = recordedDataQueue.poll()) {
+            is SnapshotRecordedDataQueueItem ->
+                processSnapshotEvent(item)
+            is TouchEventRecordedDataQueueItem ->
+                processTouchEvent(item)
+        }
+    }
+
+    private fun processSnapshotEvent(item: SnapshotRecordedDataQueueItem) {
         processor.processScreenSnapshots(
-            newContext = blockingQueueItem.newRumContext,
-            prevContext = blockingQueueItem.prevRumContext,
-            timestamp = blockingQueueItem.timestamp,
-            nodes = blockingQueueItem.nodes,
-            systemInformation = blockingQueueItem.systemInformation!!
+            newContext = item.newRumContext,
+            prevContext = item.prevRumContext,
+            timestamp = item.timestamp,
+            nodes = item.nodes,
+            systemInformation = item.systemInformation!!
         )
     }
 
-    private fun processTouchEvent(blockingQueueItem: TouchEventBlockingQueueItem) {
+    private fun processTouchEvent(item: TouchEventRecordedDataQueueItem) {
         processor.processTouchEventsRecords(
-            newContext = blockingQueueItem.newRumContext,
-            touchEventsRecords = blockingQueueItem.touchData
+            newContext = item.newRumContext,
+            touchEventsRecords = item.touchData
         )
     }
 
-    private fun shouldRemoveItem(blockingQueueItem: BlockingQueueItem?, currentTime: Long) =
-        blockingQueueItem != null &&
-            (
-                !blockingQueueItem.isValid() ||
-                    isItemTooOld(
-                        currentTime,
-                        blockingQueueItem
-                    )
-                )
+    private fun shouldRemoveItem(recordedDataQueueItem: RecordedDataQueueItem, currentTime: Long) =
+        !recordedDataQueueItem.isValid() || isTooOld(currentTime, recordedDataQueueItem)
 
-    private fun isItemTooOld(
-        currentTime: Long,
-        blockingQueueItem: BlockingQueueItem
-    ): Boolean = (currentTime - blockingQueueItem.timestamp) > MAX_DELAY_MS
+    private fun isTooOld(currentTime: Long, recordedDataQueueItem: RecordedDataQueueItem): Boolean =
+        (currentTime - recordedDataQueueItem.timestamp) > MAX_DELAY_MS
 
-    private fun insertIntoWorkQueue(blockingQueueItem: BlockingQueueItem) {
+    private fun insertIntoRecordedDataQueue(recordedDataQueueItem: RecordedDataQueueItem) {
         @Suppress("SwallowedException", "TooGenericExceptionCaught")
         try {
-            workQueue.offer(blockingQueueItem)
+            recordedDataQueue.offer(recordedDataQueueItem)
         } catch (e: IllegalArgumentException) {
             // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
         } catch (e: ClassCastException) {

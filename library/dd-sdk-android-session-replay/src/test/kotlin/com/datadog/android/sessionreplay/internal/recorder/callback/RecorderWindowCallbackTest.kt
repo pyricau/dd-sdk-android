@@ -13,8 +13,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.Window
 import com.datadog.android.sessionreplay.forge.ForgeConfigurator
-import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
-import com.datadog.android.sessionreplay.internal.async.TouchEventBlockingQueueItem
+import com.datadog.android.sessionreplay.internal.async.RecordedDataQueueHandler
+import com.datadog.android.sessionreplay.internal.async.TouchEventRecordedDataQueueItem
 import com.datadog.android.sessionreplay.internal.recorder.ViewOnDrawInterceptor
 import com.datadog.android.sessionreplay.internal.recorder.WindowInspector
 import com.datadog.android.sessionreplay.internal.utils.TimeProvider
@@ -59,7 +59,7 @@ internal class RecorderWindowCallbackTest {
     lateinit var testedWindowCallback: RecorderWindowCallback
 
     @Mock
-    lateinit var mockBlockingQueueHandler: BlockingQueueHandler
+    lateinit var mockRecordedDataQueueHandler: RecordedDataQueueHandler
 
     @Mock
     lateinit var mockWrappedCallback: Window.Callback
@@ -77,7 +77,7 @@ internal class RecorderWindowCallbackTest {
     lateinit var mockContext: Context
 
     @Forgery
-    lateinit var fakeBlockingQueueItem: TouchEventBlockingQueueItem
+    lateinit var fakeTouchEventRecordedDataQueueItem: TouchEventRecordedDataQueueItem
 
     @LongForgery(min = 0)
     var fakeTimestamp: Long = 0L
@@ -98,13 +98,13 @@ internal class RecorderWindowCallbackTest {
             val displayMetrics = DisplayMetrics().apply { density = fakeDensity.toFloat() }
             whenever(it.displayMetrics).thenReturn(displayMetrics)
         }
-        whenever(mockBlockingQueueHandler.addTouchEventBlockingQueueItem(any<List<MobileRecord>>()))
-            .thenReturn(fakeBlockingQueueItem)
+        whenever(mockRecordedDataQueueHandler.addTouchEventItem(any<List<MobileRecord>>()))
+            .thenReturn(fakeTouchEventRecordedDataQueueItem)
         whenever(mockContext.resources).thenReturn(mockResources)
         whenever(mockTimeProvider.getDeviceTimestamp()).thenReturn(fakeTimestamp)
         testedWindowCallback = RecorderWindowCallback(
             mockContext,
-            mockBlockingQueueHandler,
+            mockRecordedDataQueueHandler,
             mockWrappedCallback,
             mockTimeProvider,
             mockViewOnDrawInterceptor,
@@ -199,8 +199,8 @@ internal class RecorderWindowCallbackTest {
 
         // Then
         assertThat(testedWindowCallback.pointerInteractions).isEmpty()
-        verify(mockBlockingQueueHandler).addTouchEventBlockingQueueItem(fakeRecords)
-        verify(mockBlockingQueueHandler).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler).addTouchEventItem(fakeRecords)
+        verify(mockRecordedDataQueueHandler).tryToConsumeItems()
     }
 
     @Test
@@ -232,8 +232,8 @@ internal class RecorderWindowCallbackTest {
         testedWindowCallback.dispatchTouchEvent(relatedMotionEvent5)
 
         // Then
-        verify(mockBlockingQueueHandler).addTouchEventBlockingQueueItem(expectedRecords)
-        verify(mockBlockingQueueHandler).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler).addTouchEventItem(expectedRecords)
+        verify(mockRecordedDataQueueHandler).tryToConsumeItems()
     }
 
     @Test
@@ -273,8 +273,8 @@ internal class RecorderWindowCallbackTest {
 
         // Then
         val argumentCaptor = argumentCaptor<List<MobileRecord>>()
-        verify(mockBlockingQueueHandler, times(2)).addTouchEventBlockingQueueItem(argumentCaptor.capture())
-        verify(mockBlockingQueueHandler, times(2)).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler, times(2)).addTouchEventItem(argumentCaptor.capture())
+        verify(mockRecordedDataQueueHandler, times(2)).tryToConsumeItems()
         assertThat(argumentCaptor.firstValue).isEqualTo(expectedRecords1)
         assertThat(argumentCaptor.lastValue).isEqualTo(expectedRecords2)
     }
@@ -314,8 +314,8 @@ internal class RecorderWindowCallbackTest {
 
         // Then
         val argumentCaptor = argumentCaptor<List<MobileRecord>>()
-        verify(mockBlockingQueueHandler, times(2)).addTouchEventBlockingQueueItem(argumentCaptor.capture())
-        verify(mockBlockingQueueHandler, times(2)).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler, times(2)).addTouchEventItem(argumentCaptor.capture())
+        verify(mockRecordedDataQueueHandler, times(2)).tryToConsumeItems()
         assertThat(argumentCaptor.firstValue).isEqualTo(expectedTouchRecords1)
         assertThat(argumentCaptor.lastValue).isEqualTo(expectedTouchRecords2)
     }
@@ -342,8 +342,8 @@ internal class RecorderWindowCallbackTest {
 
         // Then
         val argumentCaptor = argumentCaptor<List<MobileRecord>>()
-        verify(mockBlockingQueueHandler, times(2)).addTouchEventBlockingQueueItem(argumentCaptor.capture())
-        verify(mockBlockingQueueHandler, times(2)).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler, times(2)).addTouchEventItem(argumentCaptor.capture())
+        verify(mockRecordedDataQueueHandler, times(2)).tryToConsumeItems()
         assertThat(argumentCaptor.firstValue).isEqualTo(expectedTouchRecords1)
         assertThat(argumentCaptor.lastValue).isEqualTo(fakeEvent2MoveRecords)
     }
@@ -365,8 +365,8 @@ internal class RecorderWindowCallbackTest {
 
         // Then
         val expectedRecords = fakeEvent1Records + fakeEvent2Records + fakeEvent3Records
-        verify(mockBlockingQueueHandler).addTouchEventBlockingQueueItem(expectedRecords)
-        verify(mockBlockingQueueHandler).tryToConsumeItems()
+        verify(mockRecordedDataQueueHandler).addTouchEventItem(expectedRecords)
+        verify(mockRecordedDataQueueHandler).tryToConsumeItems()
         assertThat(testedWindowCallback.pointerInteractions).isEmpty()
     }
 

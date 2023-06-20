@@ -9,7 +9,7 @@ package com.datadog.android.sessionreplay.internal.recorder.listener
 import android.content.Context
 import android.view.View
 import android.view.ViewTreeObserver
-import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
+import com.datadog.android.sessionreplay.internal.async.RecordedDataQueueHandler
 import com.datadog.android.sessionreplay.internal.recorder.Debouncer
 import com.datadog.android.sessionreplay.internal.recorder.SnapshotProducer
 import com.datadog.android.sessionreplay.internal.utils.MiscUtils
@@ -18,7 +18,7 @@ import java.lang.ref.WeakReference
 internal class WindowsOnDrawListener(
     private val appContext: Context,
     zOrderedDecorViews: List<View>,
-    private val blockingQueueHandler: BlockingQueueHandler,
+    private val recordedDataQueueHandler: RecordedDataQueueHandler,
     private val snapshotProducer: SnapshotProducer,
     private val debouncer: Debouncer = Debouncer(),
     private val miscUtils: MiscUtils = MiscUtils
@@ -41,7 +41,7 @@ internal class WindowsOnDrawListener(
 
         // is is very important to have the windows sorted by their z-order
         val systemInformation = miscUtils.resolveSystemInformation(appContext)
-        val blockingQueueItem = blockingQueueHandler.addSnapshotBlockingQueueItem(
+        val item = recordedDataQueueHandler.addSnapshotItem(
             systemInformation
         ) ?: return@Runnable
 
@@ -52,9 +52,9 @@ internal class WindowsOnDrawListener(
             }
 
         if (nodes.isNotEmpty()) {
-            blockingQueueItem.nodes = nodes
-            if (blockingQueueItem.isReady()) {
-                blockingQueueHandler.tryToConsumeItems()
+            item.nodes = nodes
+            if (item.isReady()) {
+                recordedDataQueueHandler.tryToConsumeItems()
             }
         }
     }

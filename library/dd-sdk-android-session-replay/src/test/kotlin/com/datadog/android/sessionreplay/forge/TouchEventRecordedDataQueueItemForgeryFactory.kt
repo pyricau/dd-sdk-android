@@ -6,20 +6,19 @@
 
 package com.datadog.android.sessionreplay.forge
 
-import com.datadog.android.sessionreplay.internal.async.SnapshotBlockingQueueItem
+import com.datadog.android.sessionreplay.internal.async.TouchEventRecordedDataQueueItem
 import fr.xgouchet.elmyr.Forge
 import fr.xgouchet.elmyr.ForgeryFactory
 
-internal class SnapshotBlockingQueueItemForgeryFactory : ForgeryFactory<SnapshotBlockingQueueItem> {
-    override fun getForgery(forge: Forge): SnapshotBlockingQueueItem {
-        val item = SnapshotBlockingQueueItem(
+internal class TouchEventRecordedDataQueueItemForgeryFactory : ForgeryFactory<TouchEventRecordedDataQueueItem> {
+    override fun getForgery(forge: Forge): TouchEventRecordedDataQueueItem {
+        val item = TouchEventRecordedDataQueueItem(
             timestamp = forge.aLong(),
             newRumContext = forge.getForgery(),
             prevRumContext = forge.getForgery()
         )
 
-        item.nodes = listOf(forge.getForgery())
-        item.systemInformation = forge.getForgery()
+        item.touchData = listOf(forge.getForgery())
         return item
     }
 }

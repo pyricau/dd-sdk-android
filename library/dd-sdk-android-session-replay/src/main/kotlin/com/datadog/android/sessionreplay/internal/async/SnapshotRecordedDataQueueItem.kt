@@ -11,11 +11,11 @@ import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 import java.util.concurrent.atomic.AtomicInteger
 
-internal class SnapshotBlockingQueueItem(
+internal class SnapshotRecordedDataQueueItem(
     timestamp: Long,
     prevRumContext: SessionReplayRumContext,
     newRumContext: SessionReplayRumContext
-) : BlockingQueueItem(timestamp, prevRumContext, newRumContext) {
+) : RecordedDataQueueItem(timestamp, prevRumContext, newRumContext) {
     internal var nodes = emptyList<Node>()
     internal var systemInformation: SystemInformation? = null
     internal var pendingImages = AtomicInteger(0)

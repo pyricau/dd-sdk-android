@@ -25,16 +25,16 @@ import org.mockito.quality.Strictness
 )
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ForgeConfiguration(ForgeConfigurator::class)
-internal class SnapshotBlockingQueueItemTest {
-    
-    @Forgery
-    lateinit var fakeSnapshotBlockingQueueItem: SnapshotBlockingQueueItem
+internal class SnapshotRecordedDataQueueItemTest {
 
-    lateinit var testedItem: SnapshotBlockingQueueItem
+    @Forgery
+    lateinit var fakeSnapshotRecordedDataQueueItem: SnapshotRecordedDataQueueItem
+
+    lateinit var testedItem: SnapshotRecordedDataQueueItem
 
     @BeforeEach
     fun `set up`() {
-        testedItem = fakeSnapshotBlockingQueueItem
+        testedItem = fakeSnapshotRecordedDataQueueItem
     }
 
     @Test
