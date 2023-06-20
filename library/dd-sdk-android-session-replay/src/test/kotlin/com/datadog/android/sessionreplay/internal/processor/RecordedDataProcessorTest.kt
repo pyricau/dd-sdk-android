@@ -23,7 +23,6 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
-import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
 import fr.xgouchet.elmyr.Forge
 import fr.xgouchet.elmyr.annotation.Forgery
@@ -36,15 +35,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.extension.Extensions
 import org.junit.jupiter.api.fail
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
-import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 @Extensions(
@@ -132,8 +128,6 @@ internal class RecordedDataProcessorTest {
         }
         whenever(mockTimeProvider.getDeviceTimestamp()).thenReturn(fakeTimestamp)
         testedProcessor = RecordedDataProcessor(
-            mockRumContextDataHandler,
-            mockExecutorService,
             mockWriter,
             mockRecordCallback,
             mockMutationResolver,
@@ -878,7 +872,7 @@ internal class RecordedDataProcessorTest {
         }
 
         // When
-        testedProcessor.processTouchEventsRecords(fakeTouchRecords)
+        testedProcessor.processTouchEventsRecords(fakeRumContext, fakeTouchRecords)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -1199,81 +1193,4 @@ internal class RecordedDataProcessorTest {
     }
 
     // endregion
-
-    // region Misc
-
-    // TODO: RUMM-2397 When proper logs are added modify this test accordingly
-    @ParameterizedTest
-    @MethodSource("processorArguments")
-    fun `M do nothing W process { executor was shutdown }`(argument: Any) {
-        // Given
-        whenever(mockExecutorService.submit(any())).thenThrow(RejectedExecutionException())
-
-        // When
-        processArgument(argument)
-
-        // Then
-        verifyZeroInteractions(mockWriter)
-    }
-
-    // TODO: RUMM-2397 When proper logs are added modify this test accordingly
-    @ParameterizedTest
-    @MethodSource("processorArguments")
-    fun `M do nothing W process { executor throws NPE }`(argument: Any) {
-        // Given
-        whenever(mockExecutorService.submit(any())).thenThrow(NullPointerException())
-
-        // When
-        processArgument(argument)
-
-        // Then
-        verifyZeroInteractions(mockWriter)
-    }
-
-    // endregion
-
-    // region Internal
-
-    private fun processArgument(argument: Any) {
-        when (argument) {
-            is List<*> -> {
-                val records = argument.filterIsInstance<MobileSegment.MobileRecord>()
-                testedProcessor.processTouchEventsRecords(records)
-            }
-            is Pair<*, *> -> {
-                @Suppress("UNCHECKED_CAST", "CastToNullableType")
-                testedProcessor.processScreenSnapshots(
-                    argument.first as List<Node>,
-                    argument.second as SystemInformation,
-                    SessionReplayRumContext(),
-                    SessionReplayRumContext(),
-                    0L
-                )
-            }
-            else -> fail(
-                "The provided argument of " +
-                    "class: ${argument::class.java.simpleName} was not matching " +
-                    "any of the processor methods signature"
-            )
-        }
-    }
-
-    // end region
-
-    companion object {
-
-        private val FORGE: Forge = Forge().apply {
-            ForgeConfigurator().configure(this)
-        }
-
-        @JvmStatic
-        fun processorArguments(): List<Any> {
-            val fakeTouchRecords = FORGE.aList {
-                FORGE.getForgery<MobileSegment.MobileRecord.MobileIncrementalSnapshotRecord>()
-            }
-            return listOf(
-                fakeTouchRecords
-            )
-        }
-    }
 }

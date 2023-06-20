@@ -41,7 +41,9 @@ internal class WindowsOnDrawListener(
 
         // is is very important to have the windows sorted by their z-order
         val systemInformation = miscUtils.resolveSystemInformation(appContext)
-        val blockingQueueItem = blockingQueueHandler.add(systemInformation) ?: return@Runnable
+        val blockingQueueItem = blockingQueueHandler.addSnapshotBlockingQueueItem(
+            systemInformation
+        ) ?: return@Runnable
 
         val nodes = weakReferencedDecorViews
             .mapNotNull { it.get() }
@@ -51,7 +53,9 @@ internal class WindowsOnDrawListener(
 
         if (nodes.isNotEmpty()) {
             blockingQueueItem.nodes = nodes
-            blockingQueueHandler.update()
+            if (blockingQueueItem.isReady()) {
+                blockingQueueHandler.tryToConsumeItems()
+            }
         }
     }
 }

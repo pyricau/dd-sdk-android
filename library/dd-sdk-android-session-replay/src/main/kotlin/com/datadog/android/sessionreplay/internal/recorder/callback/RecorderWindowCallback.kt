@@ -9,7 +9,7 @@ package com.datadog.android.sessionreplay.internal.recorder.callback
 import android.content.Context
 import android.view.MotionEvent
 import android.view.Window
-import com.datadog.android.sessionreplay.internal.processor.Processor
+import com.datadog.android.sessionreplay.internal.async.BlockingQueueHandler
 import com.datadog.android.sessionreplay.internal.recorder.ViewOnDrawInterceptor
 import com.datadog.android.sessionreplay.internal.recorder.WindowInspector
 import com.datadog.android.sessionreplay.internal.recorder.densityNormalized
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 @Suppress("TooGenericExceptionCaught")
 internal class RecorderWindowCallback(
     private val appContext: Context,
-    private val processor: Processor,
+    private val blockingQueueHandler: BlockingQueueHandler,
     internal val wrappedCallback: Window.Callback,
     private val timeProvider: TimeProvider,
     private val viewOnDrawInterceptor: ViewOnDrawInterceptor,
@@ -123,7 +123,15 @@ internal class RecorderWindowCallback(
         if (pointerInteractions.isEmpty()) {
             return
         }
-        processor.processTouchEventsRecords(ArrayList(pointerInteractions))
+
+        val item = blockingQueueHandler.addTouchEventBlockingQueueItem(
+            ArrayList(pointerInteractions)
+        ) ?: return
+
+        if (item.isReady()) {
+            blockingQueueHandler.tryToConsumeItems()
+        }
+
         pointerInteractions.clear()
         lastPerformedFlushTimeInNs = System.nanoTime()
     }

@@ -7,12 +7,10 @@
 package com.datadog.android.sessionreplay.internal.async
 
 import com.datadog.android.sessionreplay.forge.ForgeConfigurator
-import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
-import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
-import fr.xgouchet.elmyr.Forge
 import fr.xgouchet.elmyr.annotation.Forgery
 import fr.xgouchet.elmyr.junit5.ForgeConfiguration
 import fr.xgouchet.elmyr.junit5.ForgeExtension
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -27,54 +25,55 @@ import org.mockito.quality.Strictness
 )
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ForgeConfiguration(ForgeConfigurator::class)
-internal class BlockingQueueItemTest {
-
+internal class SnapshotBlockingQueueItemTest {
+    
     @Forgery
-    lateinit var fakeContext: SessionReplayRumContext
+    lateinit var fakeSnapshotBlockingQueueItem: SnapshotBlockingQueueItem
 
-    @Forgery
-    lateinit var fakeSystemInformation: SystemInformation
-
-    lateinit var testedItem: BlockingQueueItem
+    lateinit var testedItem: SnapshotBlockingQueueItem
 
     @BeforeEach
-    fun `set up`(forge: Forge) {
-        testedItem = BlockingQueueItem(
-            forge.aLong(),
-            fakeContext,
-            fakeContext,
-            fakeSystemInformation
-        )
+    fun `set up`() {
+        testedItem = fakeSnapshotBlockingQueueItem
     }
 
     @Test
-    fun `M return false W isValid() { Nodes is empty }`() {
-        // Then
-        assert(!testedItem.isValid())
-    }
-
-    @Test
-    fun `M return true W isValid() { Nodes is not empty }`(forge: Forge) {
+    fun `M return false W isValid() { Snapshot with empty nodes }`() {
         // Given
-        testedItem.nodes = listOf(forge.getForgery())
+        testedItem.nodes = emptyList()
 
         // Then
-        assert(testedItem.isValid())
+        assertThat(testedItem.isValid()).isFalse()
     }
 
     @Test
-    fun `M return false W isReady() { Pending images is greater than 0 }`() {
+    fun `M return false W isValid() { Snapshot with empty systemInformation }`() {
+        // Given
+        testedItem.systemInformation = null
+
+        // Then
+        assertThat(testedItem.isValid()).isFalse()
+    }
+
+    @Test
+    fun `M return true W isValid() { Snapshot with nodes }`() {
+        // Then
+        assertThat(testedItem.isValid()).isTrue()
+    }
+
+    @Test
+    fun `M return true W isReady() { Snapshot with no pending images }`() {
+        // Then
+        assertThat(testedItem.isReady()).isTrue()
+    }
+
+    @Test
+    fun `M return false W isReady() { Snapshot with pending images greater than 0 }`() {
         // Given
         testedItem.incrementPendingImages()
 
         // Then
-        assert(!testedItem.isReady())
-    }
-
-    @Test
-    fun `M return true W isReady() { Pending images is 0 }`() {
-        // Then
-        assert(testedItem.isReady())
+        assertThat(testedItem.isReady()).isFalse()
     }
 
     @Test
@@ -86,7 +85,7 @@ internal class BlockingQueueItemTest {
         testedItem.incrementPendingImages()
 
         // Then
-        assert(testedItem.pendingImages.get() == initial + 1)
+        assertThat(testedItem.pendingImages.get()).isEqualTo(initial + 1)
     }
 
     @Test
@@ -98,6 +97,6 @@ internal class BlockingQueueItemTest {
         testedItem.decrementPendingImages()
 
         // Then
-        assert(testedItem.pendingImages.get() == initial - 1)
+        assertThat(testedItem.pendingImages.get()).isEqualTo(initial - 1)
     }
 }

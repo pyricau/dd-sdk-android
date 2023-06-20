@@ -13,6 +13,7 @@ import com.datadog.android.sessionreplay.internal.processor.RumContextData
 import com.datadog.android.sessionreplay.internal.processor.RumContextDataHandler
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.time.SessionReplayTimeProvider
+import com.datadog.android.sessionreplay.model.MobileSegment
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
@@ -20,6 +21,7 @@ import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
 import com.nhaarman.mockitokotlin2.whenever
+import fr.xgouchet.elmyr.Forge
 import fr.xgouchet.elmyr.annotation.Forgery
 import fr.xgouchet.elmyr.junit5.ForgeConfiguration
 import fr.xgouchet.elmyr.junit5.ForgeExtension
@@ -62,12 +64,24 @@ internal class BlockingQueueHandlerTest {
     @Forgery
     lateinit var fakeRumContextData: RumContextData
 
+    @Forgery
+    lateinit var fakeSnapshotBlockingQueueItem: SnapshotBlockingQueueItem
+
+    @Forgery
+    lateinit var fakeTouchEventBlockingQueueItem: TouchEventBlockingQueueItem
+
+    lateinit var fakeTouchData: List<MobileSegment.MobileRecord>
+
+
     @BeforeEach
-    fun setup() {
+    fun setup(forge: Forge) {
+
         whenever(mockExecutorService.execute(any())).then {
             (it.arguments[0] as Runnable).run()
             mock<Future<Boolean>>()
         }
+
+        fakeTouchData = forge.aList { mock<MobileSegment.MobileRecord>() }
 
         testedHandler = BlockingQueueHandler(
             mockProcessor,
@@ -80,7 +94,7 @@ internal class BlockingQueueHandlerTest {
     @Test
     fun `M use executorService W update()`() {
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
         verify(mockExecutorService).execute(any())
@@ -89,34 +103,47 @@ internal class BlockingQueueHandlerTest {
     @Test
     fun `M do not call processor W update() { empty workQueue }`() {
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
         verifyNoMoreInteractions(mockProcessor)
     }
 
     @Test
-    fun `M do nothing W add() { invalid RumContextData }`() {
+    fun `M do nothing W add() { snapshot with invalid RumContextData }`() {
         // Given
         whenever(mockRumContextDataHandler.createRumContextData())
             .thenReturn(null)
 
         // When
-        val blockingQueueItem = testedHandler.add(mockSystemInformation)
+        val blockingQueueItem = testedHandler.addSnapshotBlockingQueueItem(mockSystemInformation)
 
         // Then
         assertThat(blockingQueueItem).isNull()
     }
 
     @Test
-    fun `M blockingQueueItem contains correct fields W add() { valid RumContextData }`() {
+    fun `M do nothing W add() { touch event with invalid RumContextData }`() {
+        // Given
+        whenever(mockRumContextDataHandler.createRumContextData())
+            .thenReturn(null)
+
+        // When
+        val blockingQueueItem = testedHandler.addTouchEventBlockingQueueItem(fakeTouchData)
+
+        // Then
+        assertThat(blockingQueueItem).isNull()
+    }
+
+    @Test
+    fun `M snapshotBlockingQueueItem contains correct fields W add() { valid RumContextData }`() {
         // Given
         whenever(mockRumContextDataHandler.createRumContextData())
             .thenReturn(fakeRumContextData)
         val currentRumContextData = mockRumContextDataHandler.createRumContextData()
 
         // When
-        val blockingQueueItem = testedHandler.add(mockSystemInformation)
+        val blockingQueueItem = testedHandler.addSnapshotBlockingQueueItem(mockSystemInformation)
 
         // Then
         assertThat(blockingQueueItem!!.prevRumContext).isEqualTo(currentRumContextData?.prevRumContext)
@@ -127,27 +154,41 @@ internal class BlockingQueueHandlerTest {
     }
 
     @Test
+    fun `M touchEventBlockingQueueItem contains correct fields W add() { valid RumContextData }`
+    () {
+        // Given
+        whenever(mockRumContextDataHandler.createRumContextData())
+            .thenReturn(fakeRumContextData)
+        val currentRumContextData = mockRumContextDataHandler.createRumContextData()
+
+        // When
+        val blockingQueueItem =
+            testedHandler.addTouchEventBlockingQueueItem(fakeTouchData)
+
+        // Then
+        assertThat(blockingQueueItem!!.prevRumContext).isEqualTo(currentRumContextData?.prevRumContext)
+        assertThat(blockingQueueItem.newRumContext).isEqualTo(currentRumContextData?.newRumContext)
+        assertThat(blockingQueueItem.timestamp).isEqualTo(currentRumContextData?.timestamp)
+        assertThat(blockingQueueItem.touchData).isEqualTo(fakeTouchData)
+        assertThat(testedHandler.workQueue.size).isEqualTo(1)
+    }
+
+    @Test
     fun `M remove item from queue W update() { expired item }`() {
         // Given
-        val spy = spy(
-            BlockingQueueItem(
-                fakeRumContextData.timestamp,
-                fakeRumContextData.newRumContext,
-                fakeRumContextData.prevRumContext,
-                mockSystemInformation
-            )
-        )
+        val spy = spy(fakeSnapshotBlockingQueueItem)
 
         doReturn(true).whenever(spy).isValid()
         doReturn(true).whenever(spy).isReady()
 
         testedHandler.workQueue.add(spy)
+        val spyTimestamp = spy.timestamp
 
         whenever(mockTimeProvider.getDeviceTimestamp())
-            .thenReturn(fakeRumContextData.timestamp + MAX_DELAY_MS + 1)
+            .thenReturn(spyTimestamp + MAX_DELAY_MS + 1)
 
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
         assertThat(testedHandler.workQueue.size).isEqualTo(0)
@@ -157,14 +198,7 @@ internal class BlockingQueueHandlerTest {
     @Test
     fun `M remove item from queue W update() { invalid item }`() {
         // Given
-        val spy = spy(
-            BlockingQueueItem(
-                fakeRumContextData.timestamp,
-                fakeRumContextData.newRumContext,
-                fakeRumContextData.prevRumContext,
-                mockSystemInformation
-            )
-        )
+        val spy = spy(fakeSnapshotBlockingQueueItem)
 
         doReturn(false).whenever(spy).isValid()
 
@@ -174,7 +208,7 @@ internal class BlockingQueueHandlerTest {
             .thenReturn(fakeRumContextData.timestamp)
 
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
         assertThat(testedHandler.workQueue.size).isEqualTo(0)
@@ -184,14 +218,7 @@ internal class BlockingQueueHandlerTest {
     @Test
     fun `M do nothing W update() { item not ready }`() {
         // Given
-        val spy = spy(
-            BlockingQueueItem(
-                fakeRumContextData.timestamp,
-                fakeRumContextData.newRumContext,
-                fakeRumContextData.prevRumContext,
-                mockSystemInformation
-            )
-        )
+        val spy = spy(fakeSnapshotBlockingQueueItem)
 
         doReturn(true).whenever(spy).isValid()
         doReturn(false).whenever(spy).isReady()
@@ -202,42 +229,62 @@ internal class BlockingQueueHandlerTest {
             .thenReturn(fakeRumContextData.timestamp)
 
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
         verifyNoMoreInteractions(mockProcessor)
     }
 
     @Test
-    fun `M call processor W update() { valid item }`() {
+    fun `M call processor W update() { valid snapshot item }`() {
         // Given
-        val spy = spy(
-            BlockingQueueItem(
-                fakeRumContextData.timestamp,
-                fakeRumContextData.newRumContext,
-                fakeRumContextData.prevRumContext,
-                mockSystemInformation
-            )
+        val spy = spy(fakeSnapshotBlockingQueueItem)
+
+        doReturn(true).whenever(spy).isValid()
+        doReturn(true).whenever(spy).isReady()
+
+        testedHandler.workQueue.add(spy)
+        val spyTimestamp = spy.timestamp
+
+        whenever(mockTimeProvider.getDeviceTimestamp())
+            .thenReturn(spyTimestamp)
+
+        // When
+        testedHandler.tryToConsumeItems()
+
+        // Then
+        verify(mockProcessor).processScreenSnapshots(
+            nodes = spy.nodes,
+            systemInformation = spy.systemInformation!!,
+            newContext = spy.newRumContext,
+            prevContext = spy.prevRumContext,
+            timestamp = spy.timestamp
         )
+    }
+
+    @Test
+    fun `M call processor W update() { valid Touch Event item }`() {
+        // Given
+        val spy = spy(fakeTouchEventBlockingQueueItem)
+        spy.touchData = fakeTouchData
 
         doReturn(true).whenever(spy).isValid()
         doReturn(true).whenever(spy).isReady()
 
         testedHandler.workQueue.add(spy)
 
+        val spyTimestamp = spy.timestamp
+
         whenever(mockTimeProvider.getDeviceTimestamp())
-            .thenReturn(fakeRumContextData.timestamp)
+            .thenReturn(spyTimestamp)
 
         // When
-        testedHandler.update()
+        testedHandler.tryToConsumeItems()
 
         // Then
-        verify(mockProcessor).processScreenSnapshots(
-            nodes = spy.nodes,
-            systemInformation = spy.systemInformation,
+        verify(mockProcessor).processTouchEventsRecords(
             newContext = spy.newRumContext,
-            prevContext = spy.prevRumContext,
-            timestamp = spy.timestamp
+            touchEventsRecords = spy.touchData
         )
     }
 }

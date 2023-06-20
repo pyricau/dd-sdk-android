@@ -14,12 +14,15 @@ import com.datadog.android.sessionreplay.model.MobileSegment
 internal interface Processor {
 
     fun processScreenSnapshots(
-        nodes: List<Node>,
-        systemInformation: SystemInformation,
-        prevContext: SessionReplayRumContext,
-        newContext: SessionReplayRumContext,
-        timestamp: Long
+            nodes: List<Node>,
+            systemInformation: SystemInformation,
+            prevContext: SessionReplayRumContext,
+            newContext: SessionReplayRumContext,
+            timestamp: Long
     )
 
-    fun processTouchEventsRecords(touchEventsRecords: List<MobileSegment.MobileRecord>)
+    fun processTouchEventsRecords(
+            newContext: SessionReplayRumContext,
+            touchEventsRecords: List<MobileSegment.MobileRecord>
+    )
 }

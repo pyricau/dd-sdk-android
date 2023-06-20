@@ -49,7 +49,8 @@ internal class ForgeConfigurator : BaseConfigurator() {
         forge.addFactory(SystemInformationForgeryFactory())
         forge.addFactory(MappingContextForgeryFactory())
         forge.addFactory(RumContextDataForgeryFactory())
-        forge.addFactory(BlockingQueueItemForgeryFactory())
+        forge.addFactory(SnapshotBlockingQueueItemForgeryFactory())
+        forge.addFactory(TouchEventBlockingQueueItemForgeryFactory())
 
         forge.useJvmFactories()
     }

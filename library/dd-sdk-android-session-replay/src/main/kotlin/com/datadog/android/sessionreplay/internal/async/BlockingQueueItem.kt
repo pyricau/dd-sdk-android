@@ -6,22 +6,13 @@
 
 package com.datadog.android.sessionreplay.internal.async
 
-import com.datadog.android.sessionreplay.internal.recorder.Node
-import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
-import java.util.concurrent.atomic.AtomicInteger
 
-internal data class BlockingQueueItem(
+internal abstract class BlockingQueueItem(
     internal val timestamp: Long,
     internal val prevRumContext: SessionReplayRumContext,
-    internal val newRumContext: SessionReplayRumContext,
-    internal val systemInformation: SystemInformation
+    internal val newRumContext: SessionReplayRumContext
 ) {
-    internal var nodes = emptyList<Node>()
-    internal var pendingImages = AtomicInteger(0)
-
-    internal fun incrementPendingImages() = pendingImages.incrementAndGet()
-    internal fun decrementPendingImages() = pendingImages.decrementAndGet()
-    internal fun isValid(): Boolean = nodes.isNotEmpty()
-    internal fun isReady(): Boolean = pendingImages.get() == 0
+    internal abstract fun isValid(): Boolean
+    internal abstract fun isReady(): Boolean
 }

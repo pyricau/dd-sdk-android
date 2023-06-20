@@ -53,15 +53,7 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
     private val viewOnDrawInterceptor: ViewOnDrawInterceptor
     private val uiHandler: Handler
 
-    @Suppress("UnsafeThirdPartyFunctionCall") // workQueue can't be null
-    private val processorExecutorService = ThreadPoolExecutor(
-        CORE_DEFAULT_POOL_SIZE,
-        CORE_DEFAULT_POOL_SIZE,
-        THREAD_POOL_MAX_KEEP_ALIVE_MS,
-        TimeUnit.MILLISECONDS,
-        LinkedBlockingDeque()
-    )
-
+    // TODO: change to LoggingThreadPoolExecutor once V2 is merged
     private val blockingQueueExecutorService = ThreadPoolExecutor(
         CORE_DEFAULT_POOL_SIZE,
         CORE_DEFAULT_POOL_SIZE,
@@ -89,8 +81,6 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
         )
 
         val processor = RecordedDataProcessor(
-            rumContextDataHandler,
-            processorExecutorService,
             recordWriter,
             recordCallback
         )
@@ -119,7 +109,11 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
                 )
             )
         )
-        this.windowCallbackInterceptor = WindowCallbackInterceptor(processor, viewOnDrawInterceptor, timeProvider)
+        this.windowCallbackInterceptor = WindowCallbackInterceptor(
+            blockingQueueHandler,
+            viewOnDrawInterceptor,
+            timeProvider
+        )
         this.sessionReplayLifecycleCallback = SessionReplayLifecycleCallback(this)
         this.uiHandler = Handler(Looper.getMainLooper())
     }

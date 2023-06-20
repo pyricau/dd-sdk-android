@@ -7,7 +7,6 @@
 package com.datadog.android.sessionreplay.internal.processor
 
 import android.content.res.Configuration
-import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import com.datadog.android.sessionreplay.internal.RecordCallback
 import com.datadog.android.sessionreplay.internal.RecordWriter
@@ -15,16 +14,11 @@ import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 import com.datadog.android.sessionreplay.model.MobileSegment
-import java.lang.NullPointerException
 import java.util.LinkedList
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 @Suppress("TooManyFunctions")
 internal class RecordedDataProcessor(
-    private val rumContextDataHandler: RumContextDataHandler,
-    private val executorService: ExecutorService,
     private val writer: RecordWriter,
     private val recordCallback: RecordCallback,
     private val mutationResolver: MutationResolver = MutationResolver(),
@@ -54,14 +48,14 @@ internal class RecordedDataProcessor(
         )
     }
 
-    @MainThread
-    override fun processTouchEventsRecords(touchEventsRecords: List<MobileSegment.MobileRecord>) {
-        buildRunnable { _, newContext, _ ->
-            Runnable {
-                @Suppress("ThreadSafety") // this runs inside an executor
-                handleTouchRecords(newContext, touchEventsRecords)
-            }
-        }?.let { executeRunnable(it) }
+    @WorkerThread
+    override fun processTouchEventsRecords(
+        newContext: SessionReplayRumContext,
+        touchEventsRecords: List<MobileSegment.MobileRecord>
+    ) {
+        updateViewSent(newContext)
+
+        handleTouchRecords(newContext, touchEventsRecords)
     }
 
     // region Internal
@@ -163,37 +157,6 @@ internal class RecordedDataProcessor(
             val viewEndRecord = MobileSegment.MobileRecord.ViewEndRecord(timestamp)
             writer.write(bundleRecordInEnrichedRecord(prevRumContext, listOf(viewEndRecord)))
         }
-    }
-
-    private fun executeRunnable(runnable: Runnable) {
-        @Suppress("SwallowedException", "TooGenericExceptionCaught")
-        try {
-            executorService.submit(runnable)
-        } catch (e: RejectedExecutionException) {
-            // TODO: RUMM-2397 Add the proper logs here once the sdkLogger will be added
-        } catch (e: NullPointerException) {
-            // TODO: RUMM-2397 Add the proper logs here once the sdkLogger will be added
-            // the task will never be null so normally this exception should not be triggered.
-            // In any case we will add a log here later.
-        }
-    }
-
-    private fun buildRunnable(
-        runnableFactory: (
-            timestamp: Long,
-            newContext: SessionReplayRumContext,
-            prevRumContext: SessionReplayRumContext
-        ) -> Runnable
-    ): Runnable? {
-        val rumContextData = rumContextDataHandler.createRumContextData() ?: return null
-
-        updateViewSent(rumContextData.newRumContext)
-
-        return runnableFactory(
-            rumContextData.timestamp,
-            rumContextData.newRumContext,
-            rumContextData.prevRumContext
-        )
     }
 
     private fun updateViewSent(rumContext: SessionReplayRumContext) {

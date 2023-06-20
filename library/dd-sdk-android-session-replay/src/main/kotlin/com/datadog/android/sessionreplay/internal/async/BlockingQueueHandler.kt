@@ -12,12 +12,17 @@ import com.datadog.android.sessionreplay.internal.processor.RecordedDataProcesso
 import com.datadog.android.sessionreplay.internal.processor.RumContextDataHandler
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.TimeProvider
+import com.datadog.android.sessionreplay.model.MobileSegment
 import java.lang.ClassCastException
 import java.lang.NullPointerException
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 
+/**
+ * This class is responsible for storing the [BlockingQueueItem]s in a queue and processing them.
+ * These items are added to the queue from the main thread and processed on a background thread
+ */
 internal class BlockingQueueHandler(
     private val processor: RecordedDataProcessor,
     private val rumContextDataHandler: RumContextDataHandler,
@@ -26,38 +31,52 @@ internal class BlockingQueueHandler(
 ) {
     // region internal
 
-    internal var workQueue = LinkedBlockingQueue<BlockingQueueItem>()
+    internal var workQueue = ConcurrentLinkedQueue<BlockingQueueItem>()
 
     @MainThread
-    internal fun add(systemInformation: SystemInformation): BlockingQueueItem? {
+    internal fun addTouchEventBlockingQueueItem(
+        pointerInteractions: List<MobileSegment.MobileRecord>
+    ): TouchEventBlockingQueueItem? {
+
         val rumContextData = rumContextDataHandler.createRumContextData()
             ?: return null
 
-        val blockingQueueItem = BlockingQueueItem(
+        val blockingQueueItem = TouchEventBlockingQueueItem(
             timestamp = rumContextData.timestamp,
             prevRumContext = rumContextData.prevRumContext,
-            newRumContext = rumContextData.newRumContext,
-            systemInformation = systemInformation
+            newRumContext = rumContextData.newRumContext
         )
 
-        @Suppress("SwallowedException", "TooGenericExceptionCaught")
-        try {
-            workQueue.offer(blockingQueueItem)
-        } catch (e: IllegalArgumentException) {
-            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
-        } catch (e: ClassCastException) {
-            // in theory will never happen but we'll log it
-            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
-        } catch (e: NullPointerException) {
-            // in theory will never happen but we'll log it
-            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
-        }
+        blockingQueueItem.touchData = pointerInteractions
+
+        insertIntoWorkQueue(blockingQueueItem)
 
         return blockingQueueItem
     }
 
     @MainThread
-    internal fun update() {
+    internal fun addSnapshotBlockingQueueItem(
+        systemInformation: SystemInformation?
+    ): SnapshotBlockingQueueItem? {
+
+        val rumContextData = rumContextDataHandler.createRumContextData()
+            ?: return null
+
+        val blockingQueueItem = SnapshotBlockingQueueItem(
+            timestamp = rumContextData.timestamp,
+            prevRumContext = rumContextData.prevRumContext,
+            newRumContext = rumContextData.newRumContext
+        )
+
+        blockingQueueItem.systemInformation = systemInformation
+
+        insertIntoWorkQueue(blockingQueueItem)
+
+        return blockingQueueItem
+    }
+
+    @MainThread
+    internal fun tryToConsumeItems() {
         // currentTime needs to be obtained on the uithread
         val currentTime = timeProvider.getDeviceTimestamp()
 
@@ -79,6 +98,7 @@ internal class BlockingQueueHandler(
     // region private
 
     @WorkerThread
+    @Synchronized
     private fun wakeUpProcessor(currentTime: Long) {
         while (workQueue.isNotEmpty()) {
             val blockingQueueItem = workQueue.peek()
@@ -90,19 +110,36 @@ internal class BlockingQueueHandler(
                     )
             ) {
                 workQueue.poll()
-                processor.processScreenSnapshots(
-                    newContext = blockingQueueItem.newRumContext,
-                    prevContext = blockingQueueItem.prevRumContext,
-                    timestamp = blockingQueueItem.timestamp,
-                    nodes = blockingQueueItem.nodes,
-                    systemInformation = blockingQueueItem.systemInformation
-                )
+
+                when (blockingQueueItem) {
+                    is SnapshotBlockingQueueItem ->
+                        processSnapshotEvent(blockingQueueItem)
+                    is TouchEventBlockingQueueItem ->
+                        processTouchEvent(blockingQueueItem)
+                }
             } else if (shouldRemoveItem(blockingQueueItem, currentTime)) {
                 workQueue.poll()
             } else if (blockingQueueItem != null && !blockingQueueItem.isReady()) {
                 break
             }
         }
+    }
+
+    private fun processSnapshotEvent(blockingQueueItem: SnapshotBlockingQueueItem) {
+        processor.processScreenSnapshots(
+            newContext = blockingQueueItem.newRumContext,
+            prevContext = blockingQueueItem.prevRumContext,
+            timestamp = blockingQueueItem.timestamp,
+            nodes = blockingQueueItem.nodes,
+            systemInformation = blockingQueueItem.systemInformation!!
+        )
+    }
+
+    private fun processTouchEvent(blockingQueueItem: TouchEventBlockingQueueItem) {
+        processor.processTouchEventsRecords(
+            newContext = blockingQueueItem.newRumContext,
+            touchEventsRecords = blockingQueueItem.touchData
+        )
     }
 
     private fun shouldRemoveItem(blockingQueueItem: BlockingQueueItem?, currentTime: Long) =
@@ -119,6 +156,21 @@ internal class BlockingQueueHandler(
         currentTime: Long,
         blockingQueueItem: BlockingQueueItem
     ): Boolean = (currentTime - blockingQueueItem.timestamp) > MAX_DELAY_MS
+
+    private fun insertIntoWorkQueue(blockingQueueItem: BlockingQueueItem) {
+        @Suppress("SwallowedException", "TooGenericExceptionCaught")
+        try {
+            workQueue.offer(blockingQueueItem)
+        } catch (e: IllegalArgumentException) {
+            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
+        } catch (e: ClassCastException) {
+            // in theory will never happen but we'll log it
+            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
+        } catch (e: NullPointerException) {
+            // in theory will never happen but we'll log it
+            // TODO: REPLAY-1364 Add logs here once the sdkLogger is added
+        }
+    }
 
     // end region
 
