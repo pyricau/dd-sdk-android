@@ -9,17 +9,19 @@ package com.datadog.android.sessionreplay.forge
 import com.datadog.android.sessionreplay.internal.async.SnapshotRecordedDataQueueItem
 import fr.xgouchet.elmyr.Forge
 import fr.xgouchet.elmyr.ForgeryFactory
+import java.util.concurrent.atomic.AtomicInteger
 
 internal class SnapshotRecordedDataQueueItemForgeryFactory : ForgeryFactory<SnapshotRecordedDataQueueItem> {
     override fun getForgery(forge: Forge): SnapshotRecordedDataQueueItem {
         val item = SnapshotRecordedDataQueueItem(
             timestamp = forge.aLong(),
             newRumContext = forge.getForgery(),
-            prevRumContext = forge.getForgery()
+            prevRumContext = forge.getForgery(),
+            systemInformation = forge.getForgery()
         )
 
+        item.pendingImages = AtomicInteger(forge.anInt())
         item.nodes = listOf(forge.getForgery())
-        item.systemInformation = forge.getForgery()
         return item
     }
 }

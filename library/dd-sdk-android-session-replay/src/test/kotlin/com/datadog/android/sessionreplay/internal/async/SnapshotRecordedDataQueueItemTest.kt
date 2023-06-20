@@ -47,15 +47,6 @@ internal class SnapshotRecordedDataQueueItemTest {
     }
 
     @Test
-    fun `M return false W isValid() { Snapshot with empty systemInformation }`() {
-        // Given
-        testedItem.systemInformation = null
-
-        // Then
-        assertThat(testedItem.isValid()).isFalse()
-    }
-
-    @Test
     fun `M return true W isValid() { Snapshot with nodes }`() {
         // Then
         assertThat(testedItem.isValid()).isTrue()
@@ -63,6 +54,9 @@ internal class SnapshotRecordedDataQueueItemTest {
 
     @Test
     fun `M return true W isReady() { Snapshot with no pending images }`() {
+        // Given
+        testedItem.pendingImages.set(0)
+
         // Then
         assertThat(testedItem.isReady()).isTrue()
     }

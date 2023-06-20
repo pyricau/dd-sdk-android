@@ -14,14 +14,14 @@ import java.util.concurrent.atomic.AtomicInteger
 internal class SnapshotRecordedDataQueueItem(
     timestamp: Long,
     prevRumContext: SessionReplayRumContext,
-    newRumContext: SessionReplayRumContext
+    newRumContext: SessionReplayRumContext,
+    internal val systemInformation: SystemInformation
 ) : RecordedDataQueueItem(timestamp, prevRumContext, newRumContext) {
     internal var nodes = emptyList<Node>()
-    internal var systemInformation: SystemInformation? = null
     internal var pendingImages = AtomicInteger(0)
 
     override fun isValid(): Boolean {
-        return nodes.isNotEmpty() && systemInformation != null
+        return nodes.isNotEmpty()
     }
 
     override fun isReady(): Boolean {

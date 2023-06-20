@@ -41,9 +41,8 @@ internal class WindowsOnDrawListener(
 
         // is is very important to have the windows sorted by their z-order
         val systemInformation = miscUtils.resolveSystemInformation(appContext)
-        val item = recordedDataQueueHandler.addSnapshotItem(
-            systemInformation
-        ) ?: return@Runnable
+        val item = recordedDataQueueHandler.addSnapshotItem(systemInformation)
+            ?: return@Runnable
 
         val nodes = weakReferencedDecorViews
             .mapNotNull { it.get() }

@@ -32,7 +32,7 @@ internal class RecordedDataQueueHandler(
 ) {
 
     // region internal
-    internal var recordedDataQueue = ConcurrentLinkedQueue<RecordedDataQueueItem>()
+    internal val recordedDataQueue = ConcurrentLinkedQueue<RecordedDataQueueItem>()
 
     @MainThread
     internal fun addTouchEventItem(
@@ -44,10 +44,9 @@ internal class RecordedDataQueueHandler(
         val item = TouchEventRecordedDataQueueItem(
             timestamp = rumContextData.timestamp,
             prevRumContext = rumContextData.prevRumContext,
-            newRumContext = rumContextData.newRumContext
+            newRumContext = rumContextData.newRumContext,
+            touchData = pointerInteractions
         )
-
-        item.touchData = pointerInteractions
 
         insertIntoRecordedDataQueue(item)
 
@@ -56,7 +55,7 @@ internal class RecordedDataQueueHandler(
 
     @MainThread
     internal fun addSnapshotItem(
-        systemInformation: SystemInformation?
+        systemInformation: SystemInformation
     ): SnapshotRecordedDataQueueItem? {
         val rumContextData = rumContextDataHandler.createRumContextData()
             ?: return null
@@ -64,10 +63,9 @@ internal class RecordedDataQueueHandler(
         val item = SnapshotRecordedDataQueueItem(
             timestamp = rumContextData.timestamp,
             prevRumContext = rumContextData.prevRumContext,
-            newRumContext = rumContextData.newRumContext
+            newRumContext = rumContextData.newRumContext,
+            systemInformation = systemInformation
         )
-
-        item.systemInformation = systemInformation
 
         insertIntoRecordedDataQueue(item)
 
@@ -82,6 +80,7 @@ internal class RecordedDataQueueHandler(
      * If neither of the previous conditions occurs, the loop breaks.
      */
     @MainThread
+    @Synchronized
     internal fun tryToConsumeItems() {
         // no need to create a thread if the queue is empty
         if (recordedDataQueue.isEmpty()) {
@@ -132,11 +131,11 @@ internal class RecordedDataQueueHandler(
 
     private fun processSnapshotEvent(item: SnapshotRecordedDataQueueItem) {
         processor.processScreenSnapshots(
+            nodes = item.nodes,
+            systemInformation = item.systemInformation,
             newContext = item.newRumContext,
             prevContext = item.prevRumContext,
-            timestamp = item.timestamp,
-            nodes = item.nodes,
-            systemInformation = item.systemInformation!!
+            timestamp = item.timestamp
         )
     }
 

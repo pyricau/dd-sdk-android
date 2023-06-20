@@ -146,6 +146,8 @@ internal class WindowsOnDrawListenerTest {
         whenever(mockRecordedDataQueueHandler.addSnapshotItem(any<SystemInformation>()))
             .thenReturn(fakeSnapshotQueueItem)
 
+        fakeSnapshotQueueItem.pendingImages.set(0)
+
         // When
         testedListener.onDraw()
 

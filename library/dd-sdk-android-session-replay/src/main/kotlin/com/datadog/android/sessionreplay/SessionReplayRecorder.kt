@@ -53,7 +53,7 @@ internal class SessionReplayRecorder : OnWindowRefreshedCallback, Recorder {
     private val viewOnDrawInterceptor: ViewOnDrawInterceptor
     private val uiHandler: Handler
 
-    // TODO: change to LoggingThreadPoolExecutor once V2 is merged
+    // TODO: RUMM-0000 change to LoggingThreadPoolExecutor once V2 is merged
     private val recordedDataQueueExecutorService = ThreadPoolExecutor(
         CORE_DEFAULT_POOL_SIZE,
         CORE_DEFAULT_POOL_SIZE,
