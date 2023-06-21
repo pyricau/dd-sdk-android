@@ -10,6 +10,8 @@ import android.content.res.Configuration
 import com.datadog.android.sessionreplay.forge.ForgeConfigurator
 import com.datadog.android.sessionreplay.internal.RecordCallback
 import com.datadog.android.sessionreplay.internal.RecordWriter
+import com.datadog.android.sessionreplay.internal.async.SnapshotRecordedDataQueueItem
+import com.datadog.android.sessionreplay.internal.async.TouchEventRecordedDataQueueItem
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
@@ -91,6 +93,16 @@ internal class RecordedDataProcessorTest {
 
     private lateinit var currentRumContextData: RumContextData
 
+    private lateinit var fakeSnapshotItem1: SnapshotRecordedDataQueueItem
+    private lateinit var fakeSnapshotItem2: SnapshotRecordedDataQueueItem
+    private lateinit var fakeSnapshotItem3: SnapshotRecordedDataQueueItem
+    private lateinit var fakeSystemInfoItem: SnapshotRecordedDataQueueItem
+
+    private lateinit var fakeSnapshot1: List<Node>
+    private lateinit var fakeSnapshot2: List<Node>
+    private lateinit var fakeSnapshot3: List<Node>
+    private lateinit var fakeSystemInformation2: SystemInformation
+
     @BeforeEach
     fun `set up`(forge: Forge) {
         initialRumContextData = RumContextData(
@@ -111,9 +123,22 @@ internal class RecordedDataProcessorTest {
             fakeRumContext
         )
 
+        fakeSnapshot1 = listOf(forge.aSingleLevelSnapshot())
+        fakeSnapshot2 = listOf(forge.aSingleLevelSnapshot())
+        fakeSnapshot3 = listOf(forge.aSingleLevelSnapshot())
+
         whenever(mockRumContextDataHandler.createRumContextData())
             .thenReturn(initialRumContextData)
             .thenReturn(sameViewRumContextData)
+
+        val availableOrientations = intArrayOf(
+            Configuration.ORIENTATION_LANDSCAPE,
+            Configuration.ORIENTATION_PORTRAIT
+        )
+
+        fakeSystemInformation2 = fakeSystemInformation.copy(
+            screenOrientation = forge.anElementFrom(availableOrientations)
+        )
 
         // we make sure the fullsnapshot was not triggered by a screen orientation change
         fakeSystemInformation = fakeSystemInformation
@@ -136,19 +161,14 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M send to the writer as EnrichedRecord W process { snapshot }`(forge: Forge) {
+    fun `M send to the writer as EnrichedRecord W process { snapshot }`() {
         // Given
-        val fakeSnapshots = forge.aList { aSingleLevelSnapshot() }
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshots,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -164,8 +184,7 @@ internal class RecordedDataProcessorTest {
     @Test
     fun `M send FullSnapshot W process`(forge: Forge) {
         // Given
-        val fakeSnapshots = forge.aList { aSingleLevelSnapshot() }
-        val fakeFlattenedSnapshots = fakeSnapshots.map {
+        val fakeFlattenedSnapshots = fakeSnapshot1.map {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
             }
@@ -174,14 +193,10 @@ internal class RecordedDataProcessorTest {
         }.flatten()
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshots,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -210,15 +225,13 @@ internal class RecordedDataProcessorTest {
             .thenReturn(initialRumContextData)
             .thenReturn(newerRumContextData)
 
-        val fakeSnapshotView1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshotView2 = forge.aList { aSingleLevelSnapshot() }
-        fakeSnapshotView1.forEach {
+        fakeSnapshot1.forEach {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
             }
             whenever(mockNodeFlattener.flattenNode(it)).thenReturn(fakeFlattenedSnapshot)
         }
-        fakeSnapshotView2.forEach {
+        fakeSnapshot2.forEach {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
             }
@@ -226,25 +239,17 @@ internal class RecordedDataProcessorTest {
         }
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshotView1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshotView2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -276,8 +281,6 @@ internal class RecordedDataProcessorTest {
         forge: Forge
     ) {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
         fakeSnapshot1.map {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
@@ -294,25 +297,17 @@ internal class RecordedDataProcessorTest {
         }.flatten()
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(RecordedDataProcessor.FULL_SNAPSHOT_INTERVAL_IN_NS))
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -330,8 +325,6 @@ internal class RecordedDataProcessorTest {
         forge: Forge
     ) {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
         val fakeFlattenedSnapshot1 = fakeSnapshot1.map {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
@@ -356,24 +349,16 @@ internal class RecordedDataProcessorTest {
         ).thenReturn(fakeMutationData)
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -387,20 +372,14 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M send MetaRecord first W process { snapshot on a new view }`(forge: Forge) {
+    fun `M send MetaRecord first W process { snapshot on a new view }`() {
         // Given
-        val fakeSnapshot = forge.aList { aSingleLevelSnapshot() }
-
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -419,7 +398,7 @@ internal class RecordedDataProcessorTest {
         // Given
         val fakeRootWidth = forge.aLong(min = 400)
         val fakeRootHeight = forge.aLong(min = 700)
-        val fakeSnapshots = listOf(
+        val fakeSnapshot = listOf(
             Node(
                 wireframes = listOf(
                     MobileSegment.Wireframe.ShapeWireframe(
@@ -435,14 +414,10 @@ internal class RecordedDataProcessorTest {
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshots,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -456,31 +431,20 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M not send MetaRecord W process { snapshot 2 on same view }`(forge: Forge) {
+    fun `M not send MetaRecord W process { snapshot 2 on same view }`() {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
+        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
-
-        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -495,30 +459,20 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M not send FocusRecord W process { snapshot 2 on same view }`(forge: Forge) {
+    fun `M not send FocusRecord W process { snapshot 2 on same view }`() {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -548,42 +502,23 @@ internal class RecordedDataProcessorTest {
             .thenReturn(sameViewRumContextData)
             .thenReturn(newerRumContextData)
 
-        val fakeSystemInformation2 = forge.getForgery<SystemInformation>().copy(
-            screenOrientation = fakeSystemInformation.screenOrientation
-        )
-        val fakeSnapshot1 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot2 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot3 = listOf(forge.aSingleLevelSnapshot())
+        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
+        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
-        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
-
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
-
-        currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+        fakeSnapshotItem3 = createSnapshotItem(fakeSnapshot3)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot3,
-            fakeSystemInformation2,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem3)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -617,39 +552,24 @@ internal class RecordedDataProcessorTest {
             .thenReturn(sameViewRumContextData)
             .thenReturn(newerRumContextData)
 
-        val fakeSnapshot1 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot2 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot3 = listOf(forge.aSingleLevelSnapshot())
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem3 = createSnapshotItem(fakeSnapshot3)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot3,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem3)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -682,39 +602,24 @@ internal class RecordedDataProcessorTest {
             .thenReturn(sameViewRumContextData)
             .thenReturn(newRumContextData)
 
-        val fakeSnapshot1 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot2 = listOf(forge.aSingleLevelSnapshot())
-        val fakeSnapshot3 = listOf(forge.aSingleLevelSnapshot())
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem3 = createSnapshotItem(fakeSnapshot3)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot3,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem3)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -742,8 +647,6 @@ internal class RecordedDataProcessorTest {
         forge: Forge
     ) {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
         val fakeFlattenedSnapshot1 = fakeSnapshot1.map {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
@@ -769,24 +672,16 @@ internal class RecordedDataProcessorTest {
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -803,8 +698,6 @@ internal class RecordedDataProcessorTest {
     @Test
     fun `M do nothing W process { no mutation was detected }`(forge: Forge) {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
         val fakeFlattenedSnapshot1 = fakeSnapshot1.map {
             val fakeFlattenedSnapshot = forge.aList {
                 getForgery(MobileSegment.Wireframe::class.java)
@@ -828,24 +721,16 @@ internal class RecordedDataProcessorTest {
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
         // We should only send the FullSnapshotRecord. The IncrementalSnapshotRecord will not be
@@ -871,8 +756,15 @@ internal class RecordedDataProcessorTest {
             )
         }
 
+        val rumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        val item = TouchEventRecordedDataQueueItem(
+            rumContextData = rumContextData,
+            touchData = fakeTouchRecords
+        )
+
         // When
-        testedProcessor.processTouchEventsRecords(fakeRumContext, fakeTouchRecords)
+        testedProcessor.processTouchEventsRecords(item)
 
         // Then
         val captor = argumentCaptor<EnrichedRecord>()
@@ -900,18 +792,13 @@ internal class RecordedDataProcessorTest {
                     Configuration.ORIENTATION_PORTRAIT
                 )
             )
-        val fakeSnapshot = forge.aList { forge.aSingleLevelSnapshot() }
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1, fakeSystemInformation)
+
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         // Then
 
@@ -932,38 +819,20 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M always send a FullSnapshot W process {orientation changed same view}`(forge: Forge) {
+    fun `M always send a FullSnapshot W process {orientation changed same view}`() {
         // Given
-        val availableOrientations = intArrayOf(
-            Configuration.ORIENTATION_LANDSCAPE,
-            Configuration.ORIENTATION_PORTRAIT
-        )
-        val fakeSystemInformation2: SystemInformation = fakeSystemInformation.copy(
-            screenOrientation = forge.anElementFrom(availableOrientations)
-        )
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
-
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation2,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSystemInfoItem = createSnapshotItem(fakeSnapshot2, fakeSystemInformation2)
+
+        testedProcessor.processScreenSnapshots(fakeSystemInfoItem)
 
         // Then
 
@@ -987,31 +856,20 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M not send a FullSnapshot W process {orientation not changed same view}`(forge: Forge) {
+    fun `M not send a FullSnapshot W process {orientation not changed same view}`() {
         // Given
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
-
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSnapshotItem2 = createSnapshotItem(fakeSnapshot2)
+
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem2)
 
         // Then
 
@@ -1034,38 +892,20 @@ internal class RecordedDataProcessorTest {
     }
 
     @Test
-    fun `M always send a FullSnapshot W process {orientation changed in a row}`(forge: Forge) {
+    fun `M always send a FullSnapshot W process {orientation changed in a row}`() {
         // Given
-        val availableOrientations = intArrayOf(
-            Configuration.ORIENTATION_LANDSCAPE,
-            Configuration.ORIENTATION_PORTRAIT
-        )
-        val fakeSystemInformation2: SystemInformation = fakeSystemInformation.copy(
-            screenOrientation = forge.anElementFrom(availableOrientations)
-        )
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
-
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
 
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation2,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSystemInfoItem = createSnapshotItem(fakeSnapshot2, fakeSystemInformation2)
+
+        testedProcessor.processScreenSnapshots(fakeSystemInfoItem)
 
         // Then
 
@@ -1093,14 +933,6 @@ internal class RecordedDataProcessorTest {
         forge: Forge
     ) {
         // Given
-        val availableOrientations = intArrayOf(
-            Configuration.ORIENTATION_LANDSCAPE,
-            Configuration.ORIENTATION_PORTRAIT
-        )
-        val fakeSystemInformation2: SystemInformation = fakeSystemInformation.copy(
-            screenOrientation = forge.anElementFrom(availableOrientations)
-        )
-
         val fakeRumContext2 = forge.getForgery<SessionReplayRumContext>()
 
         val newerRumContextData = RumContextData(
@@ -1113,29 +945,16 @@ internal class RecordedDataProcessorTest {
             .thenReturn(initialRumContextData)
             .thenReturn(newerRumContextData)
 
-        val fakeSnapshot1 = forge.aList { aSingleLevelSnapshot() }
-        val fakeSnapshot2 = forge.aList { aSingleLevelSnapshot() }
-
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
+
+        fakeSnapshotItem1 = createSnapshotItem(fakeSnapshot1)
 
         // When
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot1,
-            fakeSystemInformation,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        testedProcessor.processScreenSnapshots(fakeSnapshotItem1)
 
         currentRumContextData = mockRumContextDataHandler.createRumContextData() ?: fail("RumContextData is null")
-
-        testedProcessor.processScreenSnapshots(
-            fakeSnapshot2,
-            fakeSystemInformation2,
-            currentRumContextData.prevRumContext,
-            currentRumContextData.newRumContext,
-            currentRumContextData.timestamp
-        )
+        fakeSystemInfoItem = createSnapshotItem(fakeSnapshot2, fakeSystemInformation2)
+        testedProcessor.processScreenSnapshots(fakeSystemInfoItem)
 
         // Then
 
@@ -1190,6 +1009,18 @@ internal class RecordedDataProcessorTest {
                 )
             )
         )
+    }
+
+    private fun createSnapshotItem(snapshot: List<Node>, systemInformation: SystemInformation = fakeSystemInformation):
+        SnapshotRecordedDataQueueItem {
+        val item = SnapshotRecordedDataQueueItem(
+            rumContextData = currentRumContextData,
+            systemInformation = systemInformation
+        )
+
+        item.nodes = snapshot
+
+        return item
     }
 
     // endregion

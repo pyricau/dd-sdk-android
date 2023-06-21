@@ -14,9 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger
 internal class SnapshotRecordedDataQueueItemForgeryFactory : ForgeryFactory<SnapshotRecordedDataQueueItem> {
     override fun getForgery(forge: Forge): SnapshotRecordedDataQueueItem {
         val item = SnapshotRecordedDataQueueItem(
-            timestamp = forge.aLong(),
-            newRumContext = forge.getForgery(),
-            prevRumContext = forge.getForgery(),
+            rumContextData = forge.getForgery(),
             systemInformation = forge.getForgery()
         )
 

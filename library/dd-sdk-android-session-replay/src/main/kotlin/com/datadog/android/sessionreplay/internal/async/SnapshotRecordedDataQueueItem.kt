@@ -6,17 +6,15 @@
 
 package com.datadog.android.sessionreplay.internal.async
 
+import com.datadog.android.sessionreplay.internal.processor.RumContextData
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
-import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
 import java.util.concurrent.atomic.AtomicInteger
 
 internal class SnapshotRecordedDataQueueItem(
-    timestamp: Long,
-    prevRumContext: SessionReplayRumContext,
-    newRumContext: SessionReplayRumContext,
+    rumContextData: RumContextData,
     internal val systemInformation: SystemInformation
-) : RecordedDataQueueItem(timestamp, prevRumContext, newRumContext) {
+) : RecordedDataQueueItem(rumContextData) {
     internal var nodes = emptyList<Node>()
     internal var pendingImages = AtomicInteger(0)
 

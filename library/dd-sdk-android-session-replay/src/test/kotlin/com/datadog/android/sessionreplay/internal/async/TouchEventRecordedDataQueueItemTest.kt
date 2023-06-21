@@ -41,9 +41,7 @@ internal class TouchEventRecordedDataQueueItemTest {
     fun `M return false W isValid() { Touch Event with empty touchData }`() {
         // Given
         testedItem = TouchEventRecordedDataQueueItem(
-            timestamp = fakeTouchEventRecordedDataQueueItem.timestamp,
-            newRumContext = fakeTouchEventRecordedDataQueueItem.newRumContext,
-            prevRumContext = fakeTouchEventRecordedDataQueueItem.prevRumContext,
+            rumContextData = fakeTouchEventRecordedDataQueueItem.rumContextData,
             touchData = emptyList()
         )
 

@@ -6,12 +6,10 @@
 
 package com.datadog.android.sessionreplay.internal.async
 
-import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
+import com.datadog.android.sessionreplay.internal.processor.RumContextData
 
 internal abstract class RecordedDataQueueItem(
-    internal val timestamp: Long,
-    internal val prevRumContext: SessionReplayRumContext,
-    internal val newRumContext: SessionReplayRumContext
+    internal val rumContextData: RumContextData
 ) {
     internal abstract fun isValid(): Boolean
     internal abstract fun isReady(): Boolean

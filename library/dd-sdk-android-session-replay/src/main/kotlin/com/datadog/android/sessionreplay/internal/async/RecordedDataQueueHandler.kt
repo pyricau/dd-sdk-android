@@ -42,9 +42,7 @@ internal class RecordedDataQueueHandler(
             ?: return null
 
         val item = TouchEventRecordedDataQueueItem(
-            timestamp = rumContextData.timestamp,
-            prevRumContext = rumContextData.prevRumContext,
-            newRumContext = rumContextData.newRumContext,
+            rumContextData = rumContextData,
             touchData = pointerInteractions
         )
 
@@ -61,9 +59,7 @@ internal class RecordedDataQueueHandler(
             ?: return null
 
         val item = SnapshotRecordedDataQueueItem(
-            timestamp = rumContextData.timestamp,
-            prevRumContext = rumContextData.prevRumContext,
-            newRumContext = rumContextData.newRumContext,
+            rumContextData = rumContextData,
             systemInformation = systemInformation
         )
 
@@ -130,27 +126,18 @@ internal class RecordedDataQueueHandler(
     }
 
     private fun processSnapshotEvent(item: SnapshotRecordedDataQueueItem) {
-        processor.processScreenSnapshots(
-            nodes = item.nodes,
-            systemInformation = item.systemInformation,
-            newContext = item.newRumContext,
-            prevContext = item.prevRumContext,
-            timestamp = item.timestamp
-        )
+        processor.processScreenSnapshots(item)
     }
 
     private fun processTouchEvent(item: TouchEventRecordedDataQueueItem) {
-        processor.processTouchEventsRecords(
-            newContext = item.newRumContext,
-            touchEventsRecords = item.touchData
-        )
+        processor.processTouchEventsRecords(item)
     }
 
     private fun shouldRemoveItem(recordedDataQueueItem: RecordedDataQueueItem, currentTime: Long) =
         !recordedDataQueueItem.isValid() || isTooOld(currentTime, recordedDataQueueItem)
 
     private fun isTooOld(currentTime: Long, recordedDataQueueItem: RecordedDataQueueItem): Boolean =
-        (currentTime - recordedDataQueueItem.timestamp) > MAX_DELAY_MS
+        (currentTime - recordedDataQueueItem.rumContextData.timestamp) > MAX_DELAY_MS
 
     private fun insertIntoRecordedDataQueue(recordedDataQueueItem: RecordedDataQueueItem) {
         @Suppress("SwallowedException", "TooGenericExceptionCaught")

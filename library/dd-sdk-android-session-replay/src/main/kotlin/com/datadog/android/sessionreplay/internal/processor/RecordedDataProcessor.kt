@@ -10,6 +10,8 @@ import android.content.res.Configuration
 import androidx.annotation.WorkerThread
 import com.datadog.android.sessionreplay.internal.RecordCallback
 import com.datadog.android.sessionreplay.internal.RecordWriter
+import com.datadog.android.sessionreplay.internal.async.SnapshotRecordedDataQueueItem
+import com.datadog.android.sessionreplay.internal.async.TouchEventRecordedDataQueueItem
 import com.datadog.android.sessionreplay.internal.recorder.Node
 import com.datadog.android.sessionreplay.internal.recorder.SystemInformation
 import com.datadog.android.sessionreplay.internal.utils.SessionReplayRumContext
@@ -31,31 +33,27 @@ internal class RecordedDataProcessor(
 
     @WorkerThread
     override fun processScreenSnapshots(
-        nodes: List<Node>,
-        systemInformation: SystemInformation,
-        prevContext: SessionReplayRumContext,
-        newContext: SessionReplayRumContext,
-        timestamp: Long
+        item: SnapshotRecordedDataQueueItem
     ) {
-        updateViewSent(newContext)
+        updateViewSent(item.rumContextData.newRumContext)
 
         handleSnapshots(
-            newContext,
-            prevContext,
-            timestamp,
-            nodes,
-            systemInformation
+            newRumContext = item.rumContextData.newRumContext,
+            prevRumContext = item.rumContextData.prevRumContext,
+            timestamp = item.rumContextData.timestamp,
+            snapshots = item.nodes,
+            systemInformation = item.systemInformation
         )
     }
 
     @WorkerThread
-    override fun processTouchEventsRecords(
-        newContext: SessionReplayRumContext,
-        touchEventsRecords: List<MobileSegment.MobileRecord>
-    ) {
-        updateViewSent(newContext)
+    override fun processTouchEventsRecords(item: TouchEventRecordedDataQueueItem) {
+        updateViewSent(item.rumContextData.newRumContext)
 
-        handleTouchRecords(newContext, touchEventsRecords)
+        handleTouchRecords(
+            rumContext = item.rumContextData.newRumContext,
+            touchData = item.touchData
+        )
     }
 
     // region Internal
