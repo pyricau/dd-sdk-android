@@ -137,6 +137,8 @@ internal class CoreFeature(
     internal lateinit var storageDir: File
     internal lateinit var androidInfoProvider: AndroidInfoProvider
 
+    internal lateinit var configuration: Configuration
+
     internal val featuresContext: MutableMap<String, Map<String, Any?>> = ConcurrentHashMap()
 
     fun initialize(
@@ -148,6 +150,7 @@ internal class CoreFeature(
         if (initialized.get()) {
             return
         }
+        this.configuration =configuration
         readConfigurationSettings(configuration.coreConfig)
         readApplicationInformation(appContext, configuration)
         resolveProcessInfo(appContext)

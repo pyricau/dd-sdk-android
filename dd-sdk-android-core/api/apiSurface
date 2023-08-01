@@ -154,7 +154,7 @@ enum com.datadog.android.core.configuration.BatchSize
   - LARGE
 data class com.datadog.android.core.configuration.Configuration
   class Builder
-    constructor(String, String, String = NO_VARIANT, String? = null)
+    constructor(String, String, String = NO_VARIANT, String? = null, Float = 1f, Float = 1f, Float = 1f, Float = 1f)
     fun build(): Configuration
     fun setUseDeveloperModeWhenDebuggable(Boolean): Builder
     fun setFirstPartyHosts(List<String>): Builder
@@ -166,6 +166,10 @@ data class com.datadog.android.core.configuration.Configuration
     fun setProxy(java.net.Proxy, okhttp3.Authenticator?): Builder
     fun setEncryption(com.datadog.android.security.Encryption): Builder
     fun setCrashReportsEnabled(Boolean): Builder
+    fun setUploadFrequencyRate(Float): Builder
+    fun setMaxBatchSizeRate(Float): Builder
+    fun setMaxItemSizeRate(Float): Builder
+    fun setRecentDelayRate(Float): Builder
   companion object 
 class com.datadog.android.core.configuration.HostsSanitizer
   fun sanitizeHosts(List<String>, String): List<String>

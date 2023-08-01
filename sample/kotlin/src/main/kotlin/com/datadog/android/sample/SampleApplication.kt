@@ -8,6 +8,7 @@ package com.datadog.android.sample
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import android.os.Environment
 import android.util.Log
 import androidx.lifecycle.ViewModelProvider
 import com.datadog.android.Datadog

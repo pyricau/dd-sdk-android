@@ -8,6 +8,7 @@ package com.datadog.android.core.configuration
 
 import com.datadog.android.Datadog
 import com.datadog.android.DatadogSite
+import com.datadog.android.core.internal.persistence.file.FilePersistenceConfig
 import com.datadog.android.security.Encryption
 import com.datadog.android.trace.TracingHeaderType
 import okhttp3.Authenticator
@@ -20,13 +21,17 @@ import java.net.Proxy
  */
 data class Configuration
 internal constructor(
-    internal val coreConfig: Core,
-    internal val clientToken: String,
-    internal val env: String,
-    internal val variant: String,
-    internal val service: String?,
-    internal val crashReportsEnabled: Boolean,
-    internal val additionalConfig: Map<String, Any>
+        internal val coreConfig: Core,
+        internal val clientToken: String,
+        internal val env: String,
+        internal val variant: String,
+        internal val service: String?,
+        internal val uploadFrequencyRate: Float,
+        internal val recentDelayRate:Float,
+        internal val maxBatchSizeRate: Float,
+        internal val maxItemSizeRate: Float,
+        internal val crashReportsEnabled: Boolean,
+        internal val additionalConfig: Map<String, Any>
 ) {
 
     internal data class Core(
@@ -59,7 +64,11 @@ internal constructor(
         private val clientToken: String,
         private val env: String,
         private val variant: String = NO_VARIANT,
-        private val service: String? = null
+        private val service: String? = null,
+        private var uploadFrequencyRate: Float=1f,
+        private var recentDelayRate:Float=1f,
+        private var maxBatchSizeRate: Float=1f,
+        private var maxItemSizeRate: Float=1f,
     ) {
         private var additionalConfig: Map<String, Any> = emptyMap()
 
@@ -79,7 +88,11 @@ internal constructor(
                 variant = variant,
                 service = service,
                 crashReportsEnabled = crashReportsEnabled,
-                additionalConfig = additionalConfig
+                additionalConfig = additionalConfig,
+                    uploadFrequencyRate = uploadFrequencyRate,
+                    recentDelayRate = recentDelayRate,
+                    maxBatchSizeRate = maxBatchSizeRate,
+                    maxItemSizeRate = maxItemSizeRate
             )
         }
 
@@ -209,6 +222,26 @@ internal constructor(
          */
         fun setCrashReportsEnabled(crashReportsEnabled: Boolean): Builder {
             this.crashReportsEnabled = crashReportsEnabled
+            return this
+        }
+
+        fun setUploadFrequencyRate(uploadFrequencyRate: Float): Builder {
+            this.uploadFrequencyRate = uploadFrequencyRate
+            return this
+        }
+
+        fun setMaxBatchSizeRate(maxBatchSizeRate: Float): Builder {
+            this.maxBatchSizeRate = maxBatchSizeRate
+            return this
+        }
+
+        fun setMaxItemSizeRate(maxItemSizeRate: Float): Builder {
+            this.maxItemSizeRate = maxItemSizeRate
+            return this
+        }
+
+        fun setRecentDelayRate(recentDelayRate: Float): Builder {
+            this.recentDelayRate = recentDelayRate
             return this
         }
 
