@@ -52,6 +52,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import io.opentracing.rxjava3.TracingRxJava3Utils
 import io.opentracing.util.GlobalTracer
+import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
@@ -73,6 +74,7 @@ class SampleApplication : Application() {
         .addInterceptor(DatadogInterceptor(traceSampler = RateBasedSampler(100f)))
         .addNetworkInterceptor(TracingInterceptor(traceSampler = RateBasedSampler(100f)))
         .eventListenerFactory(DatadogEventListener.Factory())
+            .connectionSpecs(listOf(ConnectionSpec.CLEARTEXT))
         .build()
 
     private val retrofitClient = Retrofit.Builder()
@@ -87,7 +89,7 @@ class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Stetho.initializeWithDefaults(this)
-        initializeDatadog()
+//        initializeDatadog()
 
         initializeTimber()
 
@@ -101,8 +103,13 @@ class SampleApplication : Application() {
     }
 
     private fun initializeDatadog() {
+        val testKey = System.getenv()["testKey"]
+        Log.v("GeneticTestConfig", "testKey: $testKey")
         val preferences = Preferences.defaultPreferences(this)
-
+        Log.v("GeneticTestConfig",
+                "uploadFrequencyRate: $UPLOAD_FREQUENCY_RATE, " +
+                "maxBatchSizeRate: $MAX_BATCH_SIZE_RATE, " +
+                        "maxItemSizeRate: $MAX_ITEM_SIZE_RATE")
         Datadog.setVerbosity(Log.VERBOSE)
         Datadog.initialize(
             this,
@@ -255,6 +262,10 @@ class SampleApplication : Application() {
     }
 
     companion object {
+        internal var MAX_BATCH_SIZE_RATE = 1f
+        internal var MAX_ITEM_SIZE_RATE = 1f
+        internal var RECENT_DELAY__RATE = 1f
+        internal var UPLOAD_FREQUENCY_RATE = 1f
         private const val SAMPLE_IN_ALL_SESSIONS = 100f
         init {
             System.loadLibrary("datadog-native-sample-lib")
@@ -280,4 +291,5 @@ class SampleApplication : Application() {
             return application.retrofitBaseDataSource
         }
     }
+
 }

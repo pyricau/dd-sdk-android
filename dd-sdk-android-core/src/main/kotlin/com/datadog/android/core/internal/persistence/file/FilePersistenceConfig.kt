@@ -23,6 +23,8 @@ internal data class FilePersistenceConfig(
         internal const val MAX_ITEMS_PER_BATCH: Int = 500
         internal const val MAX_ITEM_SIZE: Long = 512L * 1024 // 512 KB
         internal const val OLD_FILE_THRESHOLD: Long = 18L * 60L * 60L * 1000L // 18 hours
+        internal const val MIN_BATCH_SIZE: Long = 1024L * 1024L // 1 MB
+        internal const val MIN_ITEM_SIZE: Long = 10L * 1024 // 10 KB
         internal const val MAX_DISK_SPACE: Long = 128 * MAX_BATCH_SIZE // 512 MB
         internal const val MAX_DELAY_BETWEEN_MESSAGES_MS = 5000L
         internal const val CLEANUP_FREQUENCY_THRESHOLD_MS = 1000L // 1s

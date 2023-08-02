@@ -17,6 +17,7 @@ import com.datadog.android.api.feature.StorageBackedFeature
 import com.datadog.android.api.net.RequestFactory
 import com.datadog.android.api.storage.EventBatchWriter
 import com.datadog.android.api.storage.FeatureStorageConfiguration
+import com.datadog.android.core.configuration.BatchSize
 import com.datadog.android.core.configuration.UploadFrequency
 import com.datadog.android.core.internal.data.upload.DataOkHttpUploader
 import com.datadog.android.core.internal.data.upload.DataUploadRunnable
@@ -32,6 +33,7 @@ import com.datadog.android.core.internal.persistence.NoOpStorage
 import com.datadog.android.core.internal.persistence.Storage
 import com.datadog.android.core.internal.persistence.file.FileMover
 import com.datadog.android.core.internal.persistence.file.FileOrchestrator
+import com.datadog.android.core.internal.persistence.file.FilePersistenceConfig
 import com.datadog.android.core.internal.persistence.file.FileReaderWriter
 import com.datadog.android.core.internal.persistence.file.NoOpFileOrchestrator
 import com.datadog.android.core.internal.persistence.file.advanced.FeatureFileOrchestrator
@@ -167,10 +169,10 @@ internal class SdkFeature(
         storageConfiguration: FeatureStorageConfiguration
     ) {
 
-        val resolvedFrequency = (UploadFrequency.FREQUENT.baseStepMs *
-                DataUploadRunnable.MAX_DELAY_FACTOR)
-        val uploadFrequency = UploadFrequency.RARE.baseStepMs.coerceAtLeast(resolvedFrequency)
-        Log.v("GeneticTestConfigurator", "uploadFrequency: $uploadFrequency")
+        val frequencyVariation = ((UploadFrequency.FREQUENT.baseStepMs- UploadFrequency.RARE.baseStepMs)*coreFeature.configuration.uploadFrequencyRate).toLong()
+//        val resolvedFrequency = (resolveUploadFrequency(coreFeature, storageConfiguration).baseStepMs * coreFeature.configuration.uploadFrequencyRate).toLong()
+        val uploadFrequency = UploadFrequency.RARE.baseStepMs + frequencyVariation
+        Log.v("GeneticTestConfigurator", "for feature: ${wrappedFeature.name} with uploadFrequency: $uploadFrequency")
         uploadScheduler = if (coreFeature.isMainProcess) {
             uploader = createUploader(requestFactory)
             DataUploadScheduler(
@@ -196,14 +198,12 @@ internal class SdkFeature(
         storageConfiguration: FeatureStorageConfiguration
     ): Storage {
 
-        val resolvedBatchSize = (coreFeature.configuration.maxBatchSizeRate * storageConfiguration.maxBatchSize).toLong()
-        val resolvedBatchItemSize = (coreFeature.configuration.maxItemSizeRate * storageConfiguration.maxItemSize).toLong()
-        val recentDelayMs = resolveBatchingDelay(
-                coreFeature,
-                storageConfiguration
-        )
-        val resolvedBatchDelay = (coreFeature.configuration.recentDelayRate * recentDelayMs).toLong()
-        Log.v("GeneticTestConfigurator", "resolvedBatchSize: $resolvedBatchSize, " +
+        val batchDelayVariation = ((BatchSize.LARGE.windowDurationMs-BatchSize.SMALL.windowDurationMs)*coreFeature.configuration.recentDelayRate).toLong()
+        val resolvedBatchSize = FilePersistenceConfig.MIN_BATCH_SIZE.coerceAtLeast((coreFeature.configuration.maxBatchSizeRate * storageConfiguration.maxBatchSize).toLong())
+        val resolvedBatchItemSize =FilePersistenceConfig.MIN_ITEM_SIZE.coerceAtLeast ((coreFeature.configuration.maxItemSizeRate * storageConfiguration.maxItemSize).toLong())
+        val resolvedBatchDelay = BatchSize.SMALL.windowDurationMs + batchDelayVariation
+        Log.v("GeneticTestConfigurator", "for feature: ${wrappedFeature.name} with:" +
+                " resolvedBatchSize: $resolvedBatchSize, " +
                 "resolvedBatchItemSize: $resolvedBatchItemSize," +
                 " resolvedBatchDelay: $resolvedBatchDelay")
         val fileOrchestrator = FeatureFileOrchestrator(

@@ -14,6 +14,7 @@ import com.datadog.gradle.config.javadocConfig
 import com.datadog.gradle.config.junitConfig
 import com.datadog.gradle.config.kotlinConfig
 import com.datadog.gradle.config.taskConfig
+import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.android.application")
@@ -117,33 +118,39 @@ android {
 
 }
 
-    tasks.register("runGeneticTest",RunGeneticTestTask::class.java){
-        dependsOn(":sample:kotlin:assembleAndroidTest")
-        doLast {
-           logger.log(LogLevel.INFO,"Executing genetic test with uploadFrequencyRate: $uploadFrequencyRate, maxBatchSizeRate: $maxtBathSizeRate, maxItemSizeRate: $maxItemSizeRate, recentDelayRate: $recentDelayRate ")
-                       exec{
-                           commandLine = listOf("ls")
-                       }
-                       exec{
-                           commandLine = listOf("adb","install", "./build/outputs/apk/ap1/debug/kotlin-ap1-debug.apk")
-                       }
-                       exec{
-                           commandLine = listOf("adb","install", "./build/outputs/apk/androidTest/ap1/debug/kotlin-ap1-debug-androidTest.apk")
-                       }
-                       exec {
-                            commandLine = listOf(
-                                    "adb", "shell", "am", "instrument", "-w", "-r",
-                                    "-e", "debug", "false",
-                                    "-e", "uploadFrequencyRate", uploadFrequencyRate,
-                                    "-e", "maxBatchSizeRate", maxtBathSizeRate,
-                                    "-e", "recentDelayRate", recentDelayRate,
-                                    "-e", "maxItemSizeRate", maxItemSizeRate,
-                                    "-e", "class", "com.datadog.android.sample.BasicTest",
-                                    "com.datadog.android.sample.test/androidx.test.runner.AndroidJUnitRunner"
-                            )
-                        }
+tasks.register("buildEspressoArtifacts") {
+    dependsOn(":sample:kotlin:assembleUs1Debug")
+    dependsOn(":sample:kotlin:assembleUs1DebugAndroidTest")
+    dependsOn(":sample:kotlin:installUs1Debug")
+    dependsOn(":sample:kotlin:installUs1DebugAndroidTest")
+    dependsOn(":sample:kotlin:assembleAp1Debug")
+    dependsOn(":sample:kotlin:assembleAp1DebugAndroidTest")
+    dependsOn(":sample:kotlin:installAp1Debug")
+    dependsOn(":sample:kotlin:installAp1DebugAndroidTest")
+}
+
+tasks.register("runGeneticTest", RunGeneticTestTask::class.java) {
+    doLast {
+        logger.log(LogLevel.INFO, "Executing genetic test with uploadFrequencyRate: $uploadFrequencyRate, maxBatchSizeRate: $maxtBathSizeRate, maxItemSizeRate: $maxItemSizeRate, recentDelayRate: $recentDelayRate ")
+        exec {
+            commandLine = listOf(
+                    "adb", "shell", "am", "instrument", "-w", "-r",
+                    "-e", "debug", "false",
+                    "-e", "uploadFrequencyRate", uploadFrequencyRate,
+                    "-e", "maxBatchSizeRate", maxtBathSizeRate,
+                    "-e", "recentDelayRate", recentDelayRate,
+                    "-e", "maxItemSizeRate", maxItemSizeRate,
+                    "-e", "class", "com.datadog.android.sample.BasicTest",
+                    "com.datadog.android.sample.test/androidx.test.runner.AndroidJUnitRunner"
+            )
+        }
+        exec {
+            commandLine = listOf(
+                    "adb", "pull", "/sdcard/Android/data/com.datadog.android.sample/cache/score.txt"
+            )
         }
     }
+}
 
 dependencies {
 
@@ -217,9 +224,9 @@ dependencies {
     implementation(libs.gson)
 
     // Espresso
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation(libs.bundles.integrationTests)
+    androidTestImplementation(libs.okHttpMock)
+
 
     // Misc
     implementation(libs.timber)

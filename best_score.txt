@@ -1,0 +1,2 @@
+Best score: 32.0 for uploadFrequencyRate=0.2753718631295605 maxBatchSizeRate=0.40077985415259476 maxItemSizeRate=0.8121263874706048 recentDelayRate=0.5869990791814679
+Best score: 161.0 for uploadFrequencyRate=0.06498774013089625 maxBatchSizeRate=0.6365844304895039 maxItemSizeRate=0.17258165266299363 recentDelayRate=0.4784787935986462
