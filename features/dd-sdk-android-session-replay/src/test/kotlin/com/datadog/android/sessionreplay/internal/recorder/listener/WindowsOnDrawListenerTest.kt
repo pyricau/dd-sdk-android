@@ -34,8 +34,10 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
@@ -105,9 +107,9 @@ internal class WindowsOnDrawListenerTest {
         fakeMockedDecorViews.forEachIndexed { index, decorView ->
             whenever(
                 mockSnapshotProducer.produce(
-                    decorView,
-                    fakeSystemInformation,
-                    mockRecordedDataQueueRefs
+                    any(),
+                    any(),
+                    any()
                 )
             )
                 .thenReturn(fakeWindowsSnapshots[index])
@@ -130,8 +132,7 @@ internal class WindowsOnDrawListenerTest {
             mockRecordedDataQueueHandler,
             mockSnapshotProducer,
             mockDebouncer,
-            mockMiscUtils,
-            mockRecordedDataQueueRefs
+            mockMiscUtils
         )
     }
 
@@ -164,7 +165,9 @@ internal class WindowsOnDrawListenerTest {
         testedListener.onDraw()
 
         // Then
-        assertThat(fakeSnapshotQueueItem.nodes).isEqualTo(fakeWindowsSnapshots)
+        val argCaptor = argumentCaptor<RecordedDataQueueRefs>()
+        verify(mockSnapshotProducer, times(fakeWindowsSnapshots.size)).produce(any(), any(), argCaptor.capture())
+        assertThat(argCaptor.firstValue.recordedDataQueueItem).isEqualTo(fakeSnapshotQueueItem)
         verify(mockRecordedDataQueueHandler).tryToConsumeItems()
     }
 
